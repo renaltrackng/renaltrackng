@@ -71,7 +71,8 @@ class WorkflowTests(TestCase):
         response = self.client.get(reverse('protected_image', args=[s.attempts.first().pk]))
         self.assertEqual(response.status_code, 200)
         self.assertTrue(b''.join(response.streaming_content))
-        response.close()
+        # Consuming Django's streaming wrapper already closes the response safely.
+        # A second close can terminate MySQL's surrounding test transaction.
     def test_cross_facility_records_and_images_denied(self):
         s = self.submitted(); self.client.force_login(self.other)
         for name, pk in [('screening_detail', s.pk), ('patient_detail', s.patient_id), ('protected_image', s.attempts.first().pk)]:
