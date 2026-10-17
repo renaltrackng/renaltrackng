@@ -34,3 +34,4 @@ backups/
 .coverage
 htmlcov/
 .pytest_cache/
+/.railway/

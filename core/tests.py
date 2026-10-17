@@ -182,3 +182,23 @@ class WorkflowTests(TestCase):
         s = self.submitted(); claim_review(self.reviewer, s.pk)
         self.reviewer.assigned_facilities.clear()
         with self.assertRaises(PermissionDenied): save_review(self.reviewer, s.pk, self.review_data(s))
+
+class DeploymentTests(TestCase):
+    def test_healthcheck_is_public_and_uncached(self):
+        response = self.client.get(reverse('healthcheck'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+        self.assertEqual(response['Cache-Control'], 'no-store')
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_healthcheck_does_not_redirect_railway_probe(self):
+        response = self.client.get(reverse('healthcheck'), secure=False)
+        self.assertEqual(response.status_code, 200)
+
+    def test_healthcheck_database_failure_returns_no_internal_details(self):
+        from unittest.mock import patch
+        from django.db import DatabaseError
+        with patch('django.db.connection.cursor', side_effect=DatabaseError('private connection details')):
+            response = self.client.get(reverse('healthcheck'))
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {'status': 'unavailable'})

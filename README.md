@@ -71,6 +71,8 @@ See `docs/RenalTrack_Implementation_Specification.md` for the product baseline. 
 
 ## Repository handover
 
+Railway deployment configuration and setup are documented in `docs/Railway_Deployment.md`. The provided deployment uses MySQL, persistent private photo storage and a production WSGI server.
+
 The repository excludes synced project references, local credentials, environment files, database files, private uploads, downloaded runtime dependencies and generated static output. The Bootstrap assets under `static/vendor/` are intentional runtime assets and retain their upstream licence notices. No application licence has been selected; agree ownership and licensing with the client before publishing the repository publicly.
 
 Use a private repository while the client reviews the build. Start with `.env.example` and fresh environment-specific credentials; never upload `DEMO_ACCESS.md` or copy the local demo database into the repository. See `SECURITY.md` for release restrictions.

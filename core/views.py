@@ -25,6 +25,19 @@ from .access import screenings_for, patients_for, facilities_for
 from . import dashboard as dashboard_ui
 from .services import start_screening, submit_attempt, claim_review, save_review, reviewer_allowed, audit
 
+def healthcheck(request):
+    from django.db import connection, DatabaseError
+    from django.http import JsonResponse
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({'status': 'unavailable'}, status=503)
+    response = JsonResponse({'status': 'ok'})
+    response['Cache-Control'] = 'no-store'
+    return response
+
 def role_required(role):
     def decorator(view):
         @wraps(view)
