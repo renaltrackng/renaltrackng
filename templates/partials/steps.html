@@ -1,0 +1,5 @@
+{% load ui %}<div class="steps" aria-label="Screening progress">
+  <div class="step {% if current == 1 %}current{% else %}done{% endif %}"><b>{% if current > 1 %}{% icon 'check' %}{% else %}1{% endif %}</b><span>Consent &amp; patient<small>Agreement and identity</small></span></div>
+  <div class="step {% if current == 2 %}current{% elif current > 2 %}done{% endif %}"><b>{% if current > 2 %}{% icon 'check' %}{% else %}2{% endif %}</b><span>Risk factors<small>Health background</small></span></div>
+  <div class="step {% if current == 3 %}current{% endif %}"><b>3</b><span>Photo &amp; submit<small>Capture and send</small></span></div>
+</div>

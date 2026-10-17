@@ -1,1 +1,17 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">WORKSPACE</span><h1>{{ title }}</h1><p>{{ subtitle }}</p></div>{% if section == 'settings' %}<a class="btn btn-light" href="{% url 'password_change' %}">Change password</a>{% endif %}</div><section class="panel form-panel"><form method="post" data-dirty-warning>{% csrf_token %}{% include 'partials/form.html' %}<div class="form-actions"><button type="submit" class="btn btn-primary">{{ button|default:'Save changes' }}</button><a href="{% url 'dashboard' %}" class="btn btn-light">Back to overview</a></div></form></section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}{{ title }} · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">{% if section == 'settings' %}{% icon 'settings' %} Settings{% elif section == 'facilities' %}{% icon 'building-2' %} Facilities{% elif section == 'users' %}{% icon 'user-cog' %} Team &amp; access{% endif %}</span><h1>{{ title }}</h1><p>{{ subtitle }}</p></div>
+  {% if section == 'settings' and request.resolver_match.url_name == 'profile' %}<div class="page-actions"><a class="btn btn-light" href="{% url 'password_change' %}">{% icon 'lock' %} Change password</a></div>{% endif %}
+</div>
+{% if section == 'settings' %}
+<section class="panel form-panel" style="margin-bottom:22px"><div class="record-hero"><span class="avatar lg">{{ user.initials }}</span><div><h2>{{ user.display_name }}</h2><p class="muted" style="margin:2px 0 0">{{ user.email }} · {{ user.get_role_display }}{% if user.facility %} · {{ user.facility.name }}{% endif %}</p></div></div></section>
+{% endif %}
+<section class="panel form-panel">
+  <form method="post" data-dirty-warning>
+    {% csrf_token %}{% include 'partials/form.html' %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{{ button|default:'Save changes' }}</button><a href="{% if section == 'facilities' %}{% url 'facilities' %}{% elif section == 'users' %}{% url 'users' %}{% else %}{% url 'dashboard' %}{% endif %}" class="btn btn-light">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

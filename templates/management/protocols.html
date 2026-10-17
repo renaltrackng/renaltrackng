@@ -1,1 +1,21 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">CONFIGURATION</span><h1>Screening protocols</h1><p>Versioned instructions and review options attached to each screening.</p></div></div><div class="info-box">Clinical configuration is locked for this preview. Supply the exact product instructions and approved wording before a real-patient pilot. Existing protocol versions must never be silently changed.</div>{% for protocol in protocols %}<section class="panel detail-panel"><span class="soft-tag">{% if protocol.is_demo %}DEMO ONLY{% else %}CLINICAL{% endif %} · {{ protocol.version }}</span><h2>{{ protocol.name }}</h2><p>{{ protocol.instructions }}</p><h3>Observation options</h3><ul>{% for item in protocol.observation_options %}<li>{{ item }}</li>{% endfor %}</ul><h3>Next steps</h3><ul>{% for item in protocol.next_steps %}<li>{{ item }}</li>{% endfor %}</ul></section>{% empty %}<div class="empty-state">No protocols configured.</div>{% endfor %}{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Protocols · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">{% icon 'file-text' %} Administration</span><h1>Screening protocols</h1><p>Versioned instructions, review options and consent wording used for every screening.</p></div></div>
+<div class="info-box">{% icon 'shield-check' %}<span>Protocol versions are locked once in use. Updates are published as a new version, so every past screening keeps the exact protocol it was performed under.</span></div>
+{% for protocol in protocols %}
+<section class="panel protocol-card">
+  <div class="protocol-head">
+    <div><h2>{{ protocol.name }}</h2><p class="muted" style="margin:4px 0 0">Version <span class="id-label">{{ protocol.version }}</span> · Published {{ protocol.created_at|date:'d M Y' }}</p></div>
+    <span class="state {% if not protocol.active %}off{% endif %}">{% if protocol.active %}In use{% else %}Retired{% endif %}</span>
+  </div>
+  <p>{{ protocol.instructions }}</p>
+  <div class="protocol-cols">
+    <div><h3>{% icon 'scan-line' %} Observation options</h3><ul>{% for item in protocol.observation_options %}<li>{{ item }}</li>{% endfor %}</ul></div>
+    <div><h3>{% icon 'arrow-right' %} Next steps</h3><ul>{% for item in protocol.next_steps %}<li>{{ item }}</li>{% endfor %}</ul></div>
+  </div>
+</section>
+{% empty %}
+<section class="panel"><div class="empty-state"><span class="empty-icon">{% icon 'file-text' %}</span><h3>No protocols yet</h3></div></section>
+{% endfor %}
+{% endblock %}

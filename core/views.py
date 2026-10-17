@@ -22,6 +22,7 @@ from django.views.decorators.http import require_POST
 from .models import User, Facility, Patient, Protocol, Screening, Attempt, Notification, Audit, LoginThrottle
 from .forms import LoginForm, StartForm, RiskForm, UploadForm, ReviewForm, FacilityForm, UserForm, ProfileForm
 from .access import screenings_for, patients_for, facilities_for
+from . import dashboard as dashboard_ui
 from .services import start_screening, submit_attempt, claim_review, save_review, reviewer_allowed, audit
 
 def role_required(role):
@@ -78,13 +79,23 @@ def dashboard(request):
     total = qs.exclude(status='draft').count()
     reviewed = counts.get('reviewed', 0)
     today = timezone.localdate()
-    week = []
-    for ago in range(6, -1, -1):
-        day = today - timedelta(days=ago)
-        week.append({'day': day.strftime('%a'), 'count': qs.filter(submitted_at__date=day).count()})
-    peak = max([x['count'] for x in week] + [1])
-    for day in week: day['height'] = max(4, round(day['count'] / peak * 100))
-    return render(request, 'dashboard.html', {'section': 'dashboard', 'counts': counts, 'total': total, 'reviewed': reviewed, 'completion': round(reviewed / total * 100) if total else 0, 'patients_count': patients_for(request.user).count(), 'facilities_count': facilities_for(request.user).filter(active=True).count(), 'recent': qs.exclude(status='draft').order_by('-submitted_at')[:6], 'week': week, 'today': today, 'pending': counts.get('pending', 0), 'repeats': counts.get('repeat', 0)})
+    submitted = qs.exclude(status='draft')
+    if request.user.role == 'reviewer':
+        attention = submitted.filter(status='pending').order_by('submitted_at')[:4]
+    else:
+        attention = qs.filter(status__in=['repeat', 'unreadable', 'draft']).order_by('-created_at')[:4]
+    return render(request, 'dashboard.html', {
+        'section': 'dashboard', 'counts': counts, 'total': total, 'reviewed': reviewed,
+        'completion': round(reviewed / total * 100) if total else 0,
+        'patients_count': patients_for(request.user).count(),
+        'facilities_count': facilities_for(request.user).filter(active=True).count(),
+        'recent': submitted.order_by('-submitted_at')[:6], 'today': today,
+        'pending': counts.get('pending', 0), 'repeats': counts.get('repeat', 0),
+        'drafts': counts.get('draft', 0), 'unreadable': counts.get('unreadable', 0),
+        'greeting': dashboard_ui.greeting(), 'chart': dashboard_ui.activity_chart(submitted),
+        'donut': dashboard_ui.outcome_donut(counts), 'calendar': dashboard_ui.month_calendar(submitted),
+        'attention': attention,
+    })
 
 @login_required
 def screening_list(request):
@@ -156,7 +167,7 @@ def screening_upload(request, pk):
     if request.method == 'POST' and form.is_valid():
         try:
             submit_attempt(request.user, pk, form.cleaned_data)
-            messages.success(request, 'Submitted. Your screening is pending review. The result is not available yet.')
+            messages.success(request, 'Screening submitted. You will be notified as soon as the review is complete.')
             return redirect('screening_detail', pk=pk)
         except ValidationError as exc: form.add_error(None, exc)
         except OSError: form.add_error(None, 'The image could not be saved. Select the file again and retry.')
@@ -224,7 +235,7 @@ def password_change(request):
 
 @role_required('admin')
 def facilities(request):
-    return render(request, 'management/facilities.html', {'section': 'facilities', 'facilities': Facility.objects.annotate(staff_count=Count('staff', distinct=True), patient_count=Count('patient', distinct=True))})
+    return render(request, 'management/facilities.html', {'section': 'facilities', 'facilities': Facility.objects.annotate(staff_count=Count('staff', filter=Q(staff__is_active=True), distinct=True), patient_count=Count('patient', distinct=True))})
 
 @role_required('admin')
 def facility_edit(request, pk=None):
@@ -239,7 +250,7 @@ def facility_edit(request, pk=None):
 
 @role_required('admin')
 def users(request):
-    return render(request, 'management/users.html', {'section': 'users', 'users': User.objects.select_related('facility').order_by('role', 'first_name')})
+    return render(request, 'management/users.html', {'section': 'users', 'users': User.objects.filter(is_active=True).select_related('facility').order_by('role', 'first_name')})
 
 @role_required('admin')
 def user_edit(request, pk=None):
@@ -269,7 +280,8 @@ def user_invite(request, pk):
     path = reverse('activate', kwargs={'uidb64': urlsafe_base64_encode(force_bytes(user.pk)), 'token': token})
     url = request.build_absolute_uri(path)
     if settings.DEBUG:
-        # Local demo handover only. Never put access tokens in logs or audit events.
+        # Without outbound mail (debug), hand the link to the signed-in administrator.
+        # Never put access tokens in logs or audit events.
         request.session['demo_invite'] = {'url': url, 'email': user.email}
     else:
         try: user.email_user('Your RenalTrack account', f'Set your password using this link within one hour:\n{url}\nIf you did not expect this invitation, contact your administrator.')
@@ -277,7 +289,7 @@ def user_invite(request, pk):
             messages.error(request, 'The access email could not be sent. Check mail configuration and try again.')
             return redirect('users')
     audit(request.user, 'Access link issued', user.pk)
-    messages.success(request, 'Access link generated for local demonstration.' if settings.DEBUG else 'Access email sent.')
+    messages.success(request, f'Access link ready for {user.display_name}. Share it with them securely.' if settings.DEBUG else f'Access email sent to {user.email}.')
     return redirect('users')
 
 def activate(request, uidb64, token):

@@ -1,1 +1,15 @@
-{% extends 'base.html' %}{% block auth_content %}<div class="simple-auth"><section class="panel form-panel"><h1>Choose a new password.</h1>{% if validlink %}<form method="post">{% csrf_token %}{% include 'partials/form.html' %}<button class="btn btn-primary">Save new password</button></form>{% else %}<p>This link is invalid or expired.</p><a href="{% url 'password_reset' %}">Request a new link</a>{% endif %}</section></div>{% endblock %}
+{% extends 'base.html' %}{% load static ui %}{% block title %}Choose a new password · RenalTrack{% endblock %}
+{% block auth_content %}<div class="simple-auth-page"><div class="simple-auth">
+<a class="brand" href="{% url 'login' %}"><img class="brand-mark" src="{% static 'brand/mark-128.png' %}" alt="" width="40" height="40"><span class="brand-name">Renal<b>Track</b></span></a>
+<section class="panel">
+  <span class="auth-icon">{% icon 'lock' %}</span>
+  <h1>Choose a new password</h1>
+  {% if validlink %}
+  <p>Use at least 12 characters. A short phrase is easier to remember and harder to guess.</p>
+  <form method="post">{% csrf_token %}{% include 'partials/form.html' %}<button class="btn btn-primary btn-lg">Save new password</button></form>
+  {% else %}
+  <div class="info-box amber">{% icon 'triangle-alert' %}<span>This reset link is invalid or has expired.</span></div>
+  <a class="btn btn-primary btn-lg" href="{% url 'password_reset' %}">Request a new link</a>
+  {% endif %}
+  <a class="back-link" href="{% url 'login' %}">{% icon 'arrow-left' %} Back to sign in</a>
+</section></div></div>{% endblock %}

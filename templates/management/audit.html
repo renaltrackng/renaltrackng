@@ -1,1 +1,24 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">ACCOUNTABILITY</span><h1>Activity log</h1><p>A traceable history of access, submissions and changes.</p></div></div><section class="panel"><div class="table-responsive"><table class="record-table"><thead><tr><th>Time (WAT)</th><th>Actor</th><th>Action</th><th>Record reference</th><th>Details</th></tr></thead><tbody>{% for event in page %}<tr><td>{{ event.created_at|date:'d M Y, H:i' }}</td><td>{{ event.actor.display_name }}</td><td>{{ event.action }}</td><td><span class="audit-id">{{ event.target }}</span></td><td>{{ event.detail|default:'—' }}</td></tr>{% empty %}<tr><td colspan="5">No activity recorded.</td></tr>{% endfor %}</tbody></table></div>{% include 'partials/pagination.html' %}</section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Activity log · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">{% icon 'history' %} Administration</span><h1>Activity log</h1><p>A full history of sign-ins, submissions, reviews and changes.</p></div></div>
+<section class="panel">
+  <div class="table-responsive"><table class="record-table">
+    <thead><tr><th>Time (WAT)</th><th>Person</th><th>Action</th><th>Record</th><th>Details</th></tr></thead>
+    <tbody>
+    {% for event in page %}
+      <tr>
+        <td><strong>{{ event.created_at|date:'d M Y' }}</strong><small>{{ event.created_at|date:'H:i' }}</small></td>
+        <td data-label="Person"><div class="member-cell"><span class="avatar">{{ event.actor.initials }}</span>{{ event.actor.display_name }}</div></td>
+        <td data-label="Action">{{ event.action }}</td>
+        <td data-label="Record"><span class="audit-id" title="{{ event.target }}">{{ event.target|truncatechars:14 }}</span></td>
+        <td data-label="Details">{{ event.detail|default:'—' }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5"><div class="empty-state"><span class="empty-icon">{% icon 'history' %}</span><h3>No activity yet</h3></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% include 'partials/pagination.html' %}
+</section>
+{% endblock %}

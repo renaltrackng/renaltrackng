@@ -1,1 +1,30 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">SCREENING · STEP 3 OF 3</span><h1>{% if screening.status == 'repeat' %}Submit a repeat attempt.{% else %}Capture. Check. Submit.{% endif %}</h1><p>{{ screening.patient.name }} · {{ screening.patient.public_id }}</p></div></div><div class="steps"><span>✓ Consent & participant</span><span>✓ Risk factors</span><span class="current">3 · Photo & submit</span></div><div class="form-grid"><section class="panel form-panel"><h2>Test details & photograph</h2>{% if screening.status == 'repeat' %}<div class="info-box">Reviewer request: {{ screening.latest_review.note }}. Follow the approved repeat procedure; do not assume the original strip can be reused.</div>{% endif %}<form method="post" enctype="multipart/form-data" data-dirty-warning data-upload-form>{% csrf_token %}{% include 'partials/form.html' %}<div id="image-preview" class="upload-preview" hidden><img alt="Selected strip photograph preview"><button class="btn btn-light" type="button" id="retake-image">Choose another photo</button></div><div class="submit-summary"><h3>Before you submit</h3><p>The record will be locked and sent for manual review. No finding will be available until an authorised reviewer completes the review.</p></div><div class="form-actions"><button class="btn btn-primary" data-submit-button>Submit for review ↗</button>{% if screening.status == 'draft' %}<a class="btn btn-light" href="{% url 'screening_risks' screening.pk %}">Back to risk factors</a>{% endif %}</div></form></section><aside class="panel guidance"><span class="stat-icon mint">▧</span><h2>A clear image helps.</h2><p>{{ screening.protocol.instructions }}</p><ul><li>Use even lighting and a clear, focused image.</li><li>Follow the exact product instructions and reading window.</li><li>Preview the correct reagent pad before submitting.</li><li>JPEG or PNG · up to 10 MB.</li></ul><div class="info-box">Demo instructions only. No clinical interpretation is configured.</div></aside></div>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Photo & submit · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">{% if screening.status == 'repeat' %}Repeat attempt{% else %}New screening · Step 3 of 3{% endif %}</span><h1>{% if screening.status == 'repeat' %}Submit a repeat attempt{% else %}Capture, check, submit{% endif %}</h1><p><strong style="color:var(--ink)">{{ screening.patient.name }}</strong> <span class="id-label">{{ screening.patient.public_id }}</span></p></div></div>
+{% include 'partials/steps.html' with current=3 %}
+<div class="form-grid">
+  <section class="panel form-panel">
+    <h2>Test details &amp; photo</h2>
+    <p class="muted">Check the strip pack for the lot number and expiry date.</p>
+    {% if screening.status == 'repeat' %}<div class="info-box blue">{% icon 'refresh-cw' %}<span><strong>Reviewer request:</strong> {{ screening.latest_review.note }}</span></div>{% endif %}
+    <form method="post" enctype="multipart/form-data" data-dirty-warning data-upload-form>
+      {% csrf_token %}{% include 'partials/form.html' %}
+      <div id="image-preview" class="upload-preview" hidden><img alt="Preview of the selected strip photo"><button class="btn btn-light" type="button" id="retake-image">{% icon 'camera' %} Choose another photo</button></div>
+      <div class="submit-summary"><span class="stat-icon sm tone-green">{% icon 'send' %}</span><div><h3>Before you submit</h3><p>The record is locked and sent to a reviewer. You'll get a notification as soon as the result is ready.</p></div></div>
+      <div class="form-actions"><button class="btn btn-primary btn-lg" data-submit-button>Submit for review {% icon 'arrow-right' %}</button>{% if screening.status == 'draft' %}<a class="btn btn-light" href="{% url 'screening_risks' screening.pk %}">Back</a>{% endif %}</div>
+    </form>
+  </section>
+  <aside class="panel guidance">
+    <span class="stat-icon tone-green">{% icon 'camera' %}</span>
+    <h2>Getting a clear photo</h2>
+    <p>{{ screening.protocol.instructions }}</p>
+    <ul>
+      <li>{% icon 'check' %}Use even daylight or white light — avoid shadows and glare.</li>
+      <li>{% icon 'check' %}Keep the whole strip and colour chart in frame and in focus.</li>
+      <li>{% icon 'check' %}Take the photo within the reading time on the pack.</li>
+      <li>{% icon 'check' %}JPEG or PNG, up to 10 MB.</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

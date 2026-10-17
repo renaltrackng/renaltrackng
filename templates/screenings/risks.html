@@ -1,1 +1,21 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">NEW SCREENING · STEP 2 OF 3</span><h1>A little context matters.</h1><p>{{ screening.patient.name }} · {{ screening.patient.public_id }} · Draft saved</p></div></div><div class="steps"><span>✓ Consent & participant</span><span class="current">2 · Risk factors</span><span>3 · Photo & submit</span></div><section class="panel form-panel"><h2>Record disclosed risk factors</h2><p class="muted">Choose Unknown or Not provided when appropriate. Never guess an answer.</p><form method="post" data-dirty-warning>{% csrf_token %}{% include 'partials/form.html' %}<div class="form-actions"><button class="btn btn-primary">Save & continue →</button><a class="btn btn-light" href="{% url 'screenings' %}?status=draft">Leave draft</a></div></form></section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Risk factors · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">New screening · Step 2 of 3</span><h1>Health background</h1><p><strong style="color:var(--ink)">{{ screening.patient.name }}</strong> <span class="id-label">{{ screening.patient.public_id }}</span> <span class="soft-tag">{% icon 'check' %} Draft saved</span></p></div></div>
+{% include 'partials/steps.html' with current=2 %}
+<div class="form-grid">
+  <section class="panel form-panel">
+    <h2>Known risk factors</h2>
+    <p class="muted">Record what the patient tells you. Choose “Unknown” or “Not provided” rather than guessing.</p>
+    <form method="post" data-dirty-warning>
+      {% csrf_token %}<div class="two-col">{% include 'partials/form.html' %}</div>
+      <div class="form-actions"><button class="btn btn-primary">Save &amp; continue {% icon 'arrow-right' %}</button><a class="btn btn-light" href="{% url 'screenings' %}?status=draft">Finish later</a></div>
+    </form>
+  </section>
+  <aside class="panel guidance">
+    <span class="stat-icon tone-green">{% icon 'heart-pulse' %}</span>
+    <h2>Why we ask</h2>
+    <p>Diabetes, high blood pressure and a family history of kidney disease are the most common risk factors for chronic kidney disease. They give the reviewer useful context.</p>
+  </aside>
+</div>
+{% endblock %}

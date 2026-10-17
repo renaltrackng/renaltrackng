@@ -1,1 +1,9 @@
-{% extends 'base.html' %}{% block auth_content %}<div class="simple-auth"><section class="panel form-panel"><h1>Password updated.</h1><p>You can now sign in with your new password.</p><a class="btn btn-primary" href="{% url 'login' %}">Sign in</a></section></div>{% endblock %}
+{% extends 'base.html' %}{% load static ui %}{% block title %}Password updated · RenalTrack{% endblock %}
+{% block auth_content %}<div class="simple-auth-page"><div class="simple-auth">
+<a class="brand" href="{% url 'login' %}"><img class="brand-mark" src="{% static 'brand/mark-128.png' %}" alt="" width="40" height="40"><span class="brand-name">Renal<b>Track</b></span></a>
+<section class="panel">
+  <span class="auth-icon">{% icon 'circle-check' %}</span>
+  <h1>Password updated</h1>
+  <p>You're all set. Sign in with your new password to continue.</p>
+  <a class="btn btn-primary btn-lg" href="{% url 'login' %}">Sign in {% icon 'arrow-right' %}</a>
+</section></div></div>{% endblock %}

@@ -1,1 +1,35 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">NEW SCREENING · STEP 1 OF 3</span><h1>Start with consent.</h1><p>Explain the process before recording participant details.</p></div></div><div class="steps"><span class="current">1 · Consent & participant</span><span>2 · Risk factors</span><span>3 · Photo & submit</span></div><div class="form-grid"><section class="panel form-panel"><h2>{% if patient %}Returning participant{% else %}Register a participant{% endif %}</h2>{% if patient %}<p>{{ patient.name }} · <strong>{{ patient.public_id }}</strong></p>{% else %}<div class="info-box">Returning participant? <a href="{% url 'patients' %}">Find their existing record</a> to keep their history together.</div>{% endif %}<div class="consent-notice"><span class="eyebrow">DEMO CONSENT NOTICE · {{ protocol.version }}</span><p>{{ protocol.consent_text }}</p></div><form method="post" data-dirty-warning data-consent-gate>{% csrf_token %}{% include 'partials/form.html' %}<div class="form-actions"><button class="btn btn-primary">Record consent & continue →</button><a class="btn btn-light" href="{% url 'dashboard' %}">Decline / cancel</a></div></form></section><aside class="panel guidance"><span class="stat-icon mint">✓</span><h2>Clarity comes first.</h2><p>Explain who will see the record, how manual review works, and the limits of screening.</p><hr><p>No identifiable details or photographs should be collected if consent is declined.</p><span class="soft-tag">DEMO DATA ONLY</span></aside></div>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}New screening · RenalTrack{% endblock %}
+{% block content %}
+<a class="back-link" href="{% url 'screenings' %}">{% icon 'arrow-left' %} Screenings</a>
+<div class="page-heading"><div><span class="eyebrow">New screening · Step 1 of 3</span><h1>Start with consent</h1><p>Explain the screening before recording any patient details.</p></div></div>
+{% include 'partials/steps.html' with current=1 %}
+<div class="form-grid">
+  <section class="panel form-panel">
+    <h2>{% if patient %}Returning patient{% else %}Register a patient{% endif %}</h2>
+    {% if patient %}
+      <div class="record-hero" style="margin:14px 0 20px"><span class="patient-avatar">{{ patient.name|make_list|first|upper }}</span><div><strong style="color:var(--ink)">{{ patient.name }}</strong><br><span class="id-label">{{ patient.public_id }}</span></div></div>
+    {% else %}
+      <p class="muted">A patient ID is created automatically once consent is recorded.</p>
+      <div class="info-box blue">{% icon 'users' %}<span>Seen this patient before? <a href="{% url 'patients' %}">Find their existing record</a> to keep their history in one place.</span></div>
+    {% endif %}
+    <div class="consent-notice"><span class="eyebrow">{% icon 'file-check' %} Consent notice · {{ protocol.version }}</span><p>{{ protocol.consent_text }}</p></div>
+    <form method="post" data-dirty-warning data-consent-gate>
+      {% csrf_token %}{% include 'partials/form.html' %}
+      <div class="form-actions"><button class="btn btn-primary">Record consent &amp; continue {% icon 'arrow-right' %}</button><a class="btn btn-light" href="{% url 'dashboard' %}">Patient declined</a></div>
+    </form>
+  </section>
+  <aside class="panel guidance">
+    <span class="stat-icon tone-green">{% icon 'shield-check' %}</span>
+    <h2>Consent comes first</h2>
+    <p>Take a moment to walk the patient through what happens next.</p>
+    <ul>
+      <li>{% icon 'check' %}Who can see the record: this facility and assigned reviewers.</li>
+      <li>{% icon 'check' %}A qualified reviewer checks every photo before a result is returned.</li>
+      <li>{% icon 'check' %}Screening does not diagnose or rule out kidney disease.</li>
+    </ul>
+    <hr>
+    <p style="margin:0">If the patient declines, no personal details or photographs are collected.</p>
+  </aside>
+</div>
+{% endblock %}

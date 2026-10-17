@@ -1,1 +1,28 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">SCREENING WORKSPACE</span><h1>{% if user.role == 'reviewer' %}Your review queue{% else %}Screenings{% endif %}</h1><p>Every submission, with a clear status and a traceable next step.</p></div>{% if user.role == 'staff' %}<a class="btn btn-primary" href="{% url 'screening_start' %}">＋ New screening</a>{% endif %}</div><section class="panel"><form class="filter-bar" method="get"><input aria-label="Search screenings" type="search" name="q" value="{{ query }}" placeholder="Search patient name or ID…"><select name="status" aria-label="Filter by status"><option value="">All statuses</option>{% for value,label in statuses %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% if user.role != 'staff' %}<select name="facility" aria-label="Filter by facility"><option value="">All facilities</option>{% for facility in facilities %}<option value="{{ facility.pk }}" {% if request.GET.facility == facility.pk|stringformat:'s' %}selected{% endif %}>{{ facility.name }}</option>{% endfor %}</select>{% endif %}<input name="date" type="date" aria-label="Submission date" value="{{ request.GET.date }}"><button class="btn btn-primary">Apply</button><a href="{% url 'screenings' %}" class="text-link">Reset</a></form>{% include 'partials/table.html' with records=page %}{% include 'partials/pagination.html' %}</section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}{% if user.role == 'reviewer' %}Review queue{% else %}Screenings{% endif %} · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">{% icon 'clipboard-list' %} Screenings</span>
+    <h1>{% if user.role == 'reviewer' %}Your review queue{% else %}All screenings{% endif %}</h1>
+    <p>{% if user.role == 'reviewer' %}Claim a submission, review the photo and record the outcome.{% else %}Every submission with a clear status and a traceable next step.{% endif %}</p>
+  </div>
+  {% if user.role == 'staff' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a></div>{% endif %}
+</div>
+<section class="panel">
+  <div class="chip-row" role="navigation" aria-label="Filter by status">
+    <a class="chip {% if not selected_status %}on{% endif %}" href="{% url 'screenings' %}">All</a>
+    {% for value,label in statuses %}{% if value != 'draft' or user.role != 'reviewer' %}<a class="chip {% if selected_status == value %}on{% endif %}" href="?status={{ value }}">{{ label }}</a>{% endif %}{% endfor %}
+  </div>
+  <form class="filter-bar" method="get">
+    <div class="search-field">{% icon 'search' %}<input aria-label="Search screenings" type="search" name="q" value="{{ query }}" placeholder="Search by patient name or ID…"></div>
+    <select name="status" aria-label="Filter by status"><option value="">All statuses</option>{% for value,label in statuses %}{% if value != 'draft' or user.role != 'reviewer' %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endif %}{% endfor %}</select>
+    {% if user.role != 'staff' %}<select name="facility" aria-label="Filter by facility"><option value="">All facilities</option>{% for facility in facilities %}<option value="{{ facility.pk }}" {% if request.GET.facility == facility.pk|stringformat:'s' %}selected{% endif %}>{{ facility.name }}</option>{% endfor %}</select>{% endif %}
+    <input name="date" type="date" aria-label="Submission date" value="{{ request.GET.date }}">
+    <button class="btn btn-primary">{% icon 'filter' %} Apply</button>
+    {% if request.GET %}<a href="{% url 'screenings' %}" class="text-link">{% icon 'x' %} Clear</a>{% endif %}
+  </form>
+  {% include 'partials/table.html' with records=page %}
+  {% include 'partials/pagination.html' %}
+</section>
+{% endblock %}

@@ -1,1 +1,32 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">CONTINUITY OF CARE</span><h1>Patient directory</h1><p>Find a returning participant before starting a new screening.</p></div>{% if user.role == 'staff' %}<a class="btn btn-primary" href="{% url 'screening_start' %}">＋ Register & screen</a>{% endif %}</div><section class="panel"><form class="filter-bar" method="get"><input type="search" name="q" value="{{ query }}" placeholder="Search patient ID or name…" aria-label="Search patients"><button class="btn btn-primary">Search</button></form><div class="table-responsive"><table class="record-table"><thead><tr><th>Patient</th><th>Patient ID</th><th>Facility</th><th>Registered</th><th></th></tr></thead><tbody>{% for patient in page %}<tr><td><strong>{{ patient.name }}</strong></td><td><span class="id-label">{{ patient.public_id }}</span></td><td>{{ patient.facility.name }}</td><td>{{ patient.created_at|date:'d M Y' }}</td><td><a class="text-link" href="{% url 'patient_detail' patient.pk %}">View history ↗</a></td></tr>{% empty %}<tr><td colspan="5"><div class="empty-state"><h3>No matching patients</h3><p>Try a different name or patient ID.</p></div></td></tr>{% endfor %}</tbody></table></div>{% include 'partials/pagination.html' %}</section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Patients · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">{% icon 'users' %} Patients</span><h1>Patient directory</h1><p>Find a returning patient before starting a new screening.</p></div>
+  {% if user.role == 'staff' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'user-plus' %} Register &amp; screen</a></div>{% endif %}
+</div>
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <div class="search-field">{% icon 'search' %}<input type="search" name="q" value="{{ query }}" placeholder="Search by patient ID or name…" aria-label="Search patients"></div>
+    <button class="btn btn-primary">Search</button>
+    {% if query %}<a href="{% url 'patients' %}" class="text-link">{% icon 'x' %} Clear</a>{% endif %}
+  </form>
+  <div class="table-responsive"><table class="record-table">
+    <thead><tr><th>Patient</th><th>Patient ID</th>{% if user.role != 'staff' %}<th>Facility</th>{% endif %}<th>Registered</th><th><span class="visually-hidden">Open</span></th></tr></thead>
+    <tbody>
+    {% for patient in page %}
+      <tr>
+        <td><a class="patient-cell" href="{% url 'patient_detail' patient.pk %}"><span class="patient-avatar">{{ patient.name|make_list|first|upper }}</span><strong>{{ patient.name }}</strong></a></td>
+        <td data-label="Patient ID"><span class="id-label">{{ patient.public_id }}</span></td>
+        {% if user.role != 'staff' %}<td data-label="Facility">{{ patient.facility.name }}</td>{% endif %}
+        <td data-label="Registered">{{ patient.created_at|date:'d M Y' }}</td>
+        <td class="cell-action"><a class="row-link" href="{% url 'patient_detail' patient.pk %}" aria-label="Open history for {{ patient.public_id }}">{% icon 'arrow-up-right' %}</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5"><div class="empty-state"><span class="empty-icon">{% icon 'users' %}</span><h3>No matching patients</h3><p>Try a different name or patient ID.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% include 'partials/pagination.html' %}
+</section>
+{% endblock %}

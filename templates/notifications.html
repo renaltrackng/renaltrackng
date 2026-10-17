@@ -1,1 +1,17 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">STAY CONNECTED</span><h1>Notifications</h1><p>Updates from your screening workspace. Open an update to mark it read.</p></div></div><section class="panel notification-panel">{% for notification in page %}<a class="notification-item {% if not notification.read %}unread{% endif %}" href="{% url 'screening_detail' notification.screening.pk %}"><span class="stat-icon mint">✓</span><div><strong>{{ notification.text }}</strong><small>{{ notification.created_at|date:'d M Y, H:i' }}</small></div><span>↗</span></a>{% empty %}<div class="empty-state"><h3>You’re all caught up.</h3><p>Review updates will appear here.</p></div>{% endfor %}{% include 'partials/pagination.html' %}</section>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Notifications · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">{% icon 'bell' %} Notifications</span><h1>Updates</h1><p>Review results and requests from your workspace. Opening an update marks it as read.</p></div></div>
+<section class="panel notification-panel">
+  {% for notification in page %}
+  <a class="notification-item {% if not notification.read %}unread{% endif %}" href="{% url 'screening_detail' notification.screening.pk %}">
+    <span class="stat-icon sm {% if notification.screening.status == 'reviewed' %}tone-green{% elif notification.screening.status == 'repeat' %}tone-blue{% elif notification.screening.status == 'unreadable' %}tone-red{% else %}tone-amber{% endif %}">{% status_icon notification.screening.status as si %}{% icon si %}</span>
+    <div><strong>{{ notification.text }}</strong><small>{{ notification.screening.patient.name }} · {{ notification.screening.patient.public_id }} · {{ notification.screening.get_status_display }} · {{ notification.created_at|timesince }} ago</small></div>
+    {% icon 'chevron-right' %}
+  </a>
+  {% empty %}
+  <div class="empty-state"><span class="empty-icon">{% icon 'bell' %}</span><h3>You're all caught up</h3><p>Review updates will appear here.</p></div>
+  {% endfor %}
+  {% include 'partials/pagination.html' %}
+</section>
+{% endblock %}

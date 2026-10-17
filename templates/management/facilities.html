@@ -1,1 +1,21 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading"><div><span class="eyebrow">MANAGEMENT</span><h1>Facilities</h1><p>A secure workspace for every participating location.</p></div><a class="btn btn-primary" href="{% url 'facility_create' %}">＋ Add facility</a></div><div class="facility-grid">{% for facility in facilities %}<section class="panel facility-card"><div class="facility-top"><span class="stat-icon mint">✚</span><span class="status {% if facility.active %}status-reviewed{% else %}status-draft{% endif %}">{% if facility.active %}Active{% else %}Disabled{% endif %}</span></div><h2>{{ facility.name }}</h2><p>{{ facility.city|default:'Location not specified' }}</p><span class="id-label">{{ facility.code }}</span><div class="facility-numbers"><span><strong>{{ facility.staff_count }}</strong> Staff accounts</span><span><strong>{{ facility.patient_count }}</strong> Patients</span></div><a href="{% url 'facility_edit' facility.pk %}" class="btn btn-light w-100">Manage facility ↗</a></section>{% empty %}<div class="empty-state"><h3>No facilities yet</h3><p>Add a facility to begin.</p></div>{% endfor %}</div>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Facilities · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">{% icon 'building-2' %} Administration</span><h1>Facilities</h1><p>Each location gets its own private workspace and patient records.</p></div>
+  <div class="page-actions"><a class="btn btn-primary" href="{% url 'facility_create' %}">{% icon 'plus' %} Add facility</a></div>
+</div>
+<div class="facility-grid">
+  {% for facility in facilities %}
+  <section class="panel facility-card">
+    <div class="facility-top"><span class="stat-icon tone-green">{% icon 'building-2' %}</span><span class="state {% if not facility.active %}off{% endif %}">{% if facility.active %}Active{% else %}Disabled{% endif %}</span></div>
+    <h2>{{ facility.name }}</h2>
+    <div class="loc">{% icon 'map-pin' %} {{ facility.city|default:'Location not set' }} · <span class="id-label">{{ facility.code }}</span></div>
+    <div class="facility-numbers"><span><strong>{{ facility.staff_count }}</strong>Staff</span><span><strong>{{ facility.patient_count }}</strong>Patients</span></div>
+    <a href="{% url 'facility_edit' facility.pk %}" class="btn btn-light w-100">{% icon 'settings' %} Manage facility</a>
+  </section>
+  {% empty %}
+  <section class="panel"><div class="empty-state"><span class="empty-icon">{% icon 'building-2' %}</span><h3>No facilities yet</h3><p>Add your first facility to start screening.</p><a class="btn btn-primary" href="{% url 'facility_create' %}">{% icon 'plus' %} Add facility</a></div></section>
+  {% endfor %}
+</div>
+{% endblock %}

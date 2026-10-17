@@ -1,2 +1,90 @@
-{% extends 'base.html' %}{% block content %}<a class="back-link" href="{% url 'screenings' %}">← All screenings</a><div class="page-heading"><div><span class="eyebrow">SCREENING RECORD</span><h1>{{ screening.patient.name }}</h1><p><a href="{% url 'patient_detail' screening.patient.pk %}">{{ screening.patient.public_id }}</a> · {{ screening.facility.name }} · {% include 'partials/status.html' %}</p></div>{% if user.role == 'staff' %}{% if screening.status == 'draft' %}<a class="btn btn-primary" href="{% url 'screening_risks' screening.pk %}">Continue draft →</a>{% elif screening.status == 'repeat' %}<a class="btn btn-primary" href="{% url 'screening_upload' screening.pk %}">Submit repeat attempt →</a>{% endif %}{% endif %}</div>
-{% if screening.status == 'pending' %}<div class="info-box">Submitted. This screening is pending review. The result is not available yet. Check this portal for updates.</div>{% endif %}<div class="detail-grid"><div><section class="panel detail-panel"><div class="panel-heading"><div><h2>Submitted photographs</h2><p>Original attempts remain in the record.</p></div><span class="soft-tag">PRIVATE MEDIA</span></div>{% for attempt in attempts %}<div class="attempt"><a href="{% url 'protected_image' attempt.pk %}" target="_blank" rel="noopener"><img class="strip-image" src="{% url 'protected_image' attempt.pk %}" alt="Screening photograph, attempt {{ attempt.number }}. Open full size."></a><div class="image-caption"><strong>Attempt {{ attempt.number }}</strong><a href="{% url 'protected_image' attempt.pk %}" target="_blank" rel="noopener">Open full-size ↗</a></div><dl class="metadata"><div><dt>Product</dt><dd>{{ attempt.product }}</dd></div><div><dt>Lot / expiry</dt><dd>{{ attempt.lot }} · {{ attempt.expiry|date:'d M Y' }}</dd></div><div><dt>Captured</dt><dd>{{ attempt.captured_at|date:'d M Y, H:i' }} WAT</dd></div><div><dt>Submitted by</dt><dd>{{ attempt.submitted_by.display_name }}</dd></div></dl>{% if attempt.note %}<p>{{ attempt.note }}</p>{% endif %}</div>{% empty %}<div class="empty-state"><p>No image submitted. This is a saved draft.</p></div>{% endfor %}</section><section class="panel detail-panel"><h2>Review history</h2>{% for review in reviews %}<article class="review-entry"><div class="review-entry-heading"><strong>Version {{ review.version }} · {{ review.get_decision_display }}</strong><span>{{ review.created_at|date:'d M Y, H:i' }}</span></div><p class="muted">{{ review.reviewer.display_name }} · Attempt {{ review.attempt.number }}</p>{% if review.observation %}<dl class="metadata"><div><dt>Recorded observation</dt><dd>{{ review.observation }}</dd></div><div><dt>Next step</dt><dd>{{ review.next_step }}</dd></div></dl>{% endif %}<p>{{ review.note|linebreaksbr }}</p>{% if review.amendment_reason %}<div class="info-box">Amendment reason: {{ review.amendment_reason }}</div>{% endif %}</article>{% empty %}<p class="muted">There is no reviewed finding yet.</p>{% endfor %}</section></div><div><section class="panel detail-panel"><h2>Screening context</h2><dl class="metadata vertical"><div><dt>Protocol</dt><dd>{{ screening.protocol }}</dd></div><div><dt>Consent</dt><dd>Recorded {{ screening.consent.recorded_at|date:'d M Y, H:i' }}</dd></div>{% for label,value in factors %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></section>{% if review_form %}<section class="panel detail-panel review-panel"><span class="eyebrow">AUTHORISED MANUAL REVIEW</span><h2>{% if screening.status == 'reviewed' %}Amend reviewed finding{% else %}Record your review{% endif %}</h2><div class="info-box">Demo protocol only. The available observations do not represent a clinical result.</div>{% if claim_active %}<p class="muted">Claimed by {{ screening.claimed_by.display_name }} until {{ screening.claim_expires|date:'H:i' }}.</p>{% endif %}<form method="post" class="claim-actions">{% csrf_token %}<button name="action" value="claim" class="btn btn-light">Claim / renew review</button>{% if screening.claimed_by_id == user.pk %}<button name="action" value="release" class="text-button">Release</button>{% endif %}</form><form method="post" data-dirty-warning>{% csrf_token %}{% include 'partials/form.html' with form=review_form %}<button class="btn btn-primary w-100">Save review</button></form></section>{% endif %}<div class="safety-note"><p>A photograph is not a laboratory measurement. If you cannot read the submission confidently, request a repeat or mark it unreadable.</p></div></div></div>{% endblock %}
+{% extends 'base.html' %}{% load ui %}
+{% block title %}{{ screening.patient.name }} · Screening · RenalTrack{% endblock %}
+{% block content %}
+<a class="back-link" href="{% url 'screenings' %}">{% icon 'arrow-left' %} {% if user.role == 'reviewer' %}Review queue{% else %}Screenings{% endif %}</a>
+<div class="page-heading">
+  <div class="record-hero">
+    <span class="patient-avatar lg">{{ screening.patient.name|make_list|first|upper }}</span>
+    <div>
+      <span class="eyebrow">Screening record</span>
+      <h1>{{ screening.patient.name }}</h1>
+      <p><a class="id-label" href="{% url 'patient_detail' screening.patient.pk %}">{{ screening.patient.public_id }}</a> <span>{{ screening.facility.name }}</span> {% include 'partials/status.html' %}</p>
+    </div>
+  </div>
+  {% if user.role == 'staff' %}
+    {% if screening.status == 'draft' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_risks' screening.pk %}">Continue screening {% icon 'arrow-right' %}</a></div>
+    {% elif screening.status == 'repeat' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_upload' screening.pk %}">{% icon 'camera' %} Submit repeat attempt</a></div>{% endif %}
+  {% endif %}
+</div>
+
+{% if screening.status == 'pending' and user.role == 'staff' %}<div class="info-box amber">{% icon 'clock' %}<span><strong>Awaiting review.</strong> A reviewer will assess this submission shortly. You'll be notified here as soon as the result is ready.</span></div>{% endif %}
+
+<div class="detail-grid">
+  <div>
+    <section class="panel detail-panel">
+      <div class="panel-heading"><div><h2>Strip photographs</h2><p>Every attempt is kept in the record.</p></div><span class="soft-tag">{% icon 'lock' %} Private</span></div>
+      {% for attempt in attempts %}
+      <div class="attempt">
+        <a class="strip-frame" href="{% url 'protected_image' attempt.pk %}" target="_blank" rel="noopener"><img class="strip-image" src="{% url 'protected_image' attempt.pk %}" alt="Strip photo, attempt {{ attempt.number }}. Opens full size."></a>
+        <div class="image-caption"><strong>Attempt {{ attempt.number }}</strong><a class="text-link" href="{% url 'protected_image' attempt.pk %}" target="_blank" rel="noopener">Open full size {% icon 'arrow-up-right' %}</a></div>
+        <dl class="metadata">
+          <div><dt>Test product</dt><dd>{{ attempt.product }}</dd></div>
+          <div><dt>Lot · expiry</dt><dd>{{ attempt.lot }} · {{ attempt.expiry|date:'d M Y' }}</dd></div>
+          <div><dt>Photo taken</dt><dd>{{ attempt.captured_at|date:'d M Y, H:i' }}</dd></div>
+          <div><dt>Submitted by</dt><dd>{{ attempt.submitted_by.display_name }}</dd></div>
+        </dl>
+        {% if attempt.note %}<p class="attempt-note">{{ attempt.note }}</p>{% endif %}
+      </div>
+      {% empty %}
+      <div class="empty-state"><span class="empty-icon">{% icon 'image' %}</span><h3>No photo yet</h3><p>This screening is saved as a draft.</p></div>
+      {% endfor %}
+    </section>
+
+    <section class="panel detail-panel">
+      <div class="panel-heading"><div><h2>Review history</h2><p>Every review and amendment, newest first.</p></div></div>
+      {% if reviews %}
+      <ol class="timeline">
+        {% for review in reviews %}
+        <li class="review-entry">
+          <span class="dot {% if review.decision == 'reviewed' %}tone-green{% elif review.decision == 'repeat' %}tone-blue{% else %}tone-red{% endif %}">{% status_icon review.decision as si %}{% icon si %}</span>
+          <div class="review-entry-heading"><strong>{{ review.get_decision_display }} · v{{ review.version }}</strong><span>{{ review.created_at|date:'d M Y, H:i' }}</span></div>
+          <p class="muted" style="margin-top:2px">{{ review.reviewer.display_name }} · Attempt {{ review.attempt.number }}</p>
+          {% if review.observation %}<dl class="metadata"><div><dt>Observation</dt><dd>{{ review.observation }}</dd></div><div><dt>Next step</dt><dd>{{ review.next_step }}</dd></div></dl>{% endif %}
+          <p>{{ review.note|linebreaksbr }}</p>
+          {% if review.amendment_reason %}<div class="info-box amber" style="margin:10px 0 0">{% icon 'history' %}<span><strong>Amended:</strong> {{ review.amendment_reason }}</span></div>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <div class="attention-empty" style="padding:0">{% icon 'clock' %} No review has been recorded yet.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div>
+    <section class="panel detail-panel">
+      <h2>Screening details</h2>
+      <dl class="metadata vertical">
+        <div><dt>Protocol</dt><dd>{{ screening.protocol }}</dd></div>
+        <div><dt>Consent recorded</dt><dd>{{ screening.consent.recorded_at|date:'d M Y, H:i' }}</dd></div>
+        {% for label,value in factors %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+      </dl>
+    </section>
+
+    {% if review_form %}
+    <section class="panel detail-panel review-panel">
+      <span class="eyebrow">{% icon 'stethoscope' %} Professional review</span>
+      <h2>{% if screening.status == 'reviewed' %}Amend this review{% else %}Record your review{% endif %}</h2>
+      {% if claim_active %}<div class="claim-note">{% icon 'lock' %}<span>Claimed by <strong>{{ screening.claimed_by.display_name }}</strong> until {{ screening.claim_expires|date:'H:i' }}</span></div>{% endif %}
+      <form method="post" class="claim-actions">{% csrf_token %}
+        <button name="action" value="claim" class="btn btn-soft">{% icon 'lock' %} {% if screening.claimed_by_id == user.pk and claim_active %}Renew claim{% else %}Claim this review{% endif %}</button>
+        {% if screening.claimed_by_id == user.pk %}<button name="action" value="release" class="text-button">Release</button>{% endif %}
+      </form>
+      <form method="post" data-dirty-warning>{% csrf_token %}{% include 'partials/form.html' with form=review_form %}<button class="btn btn-primary btn-lg w-100">Save review</button></form>
+    </section>
+    {% endif %}
+
+    <div class="safety-note">{% icon 'info' %}<p>A strip photo is a screening aid, not a laboratory measurement. If the image can't be read with confidence, request a repeat or mark it unreadable.</p></div>
+  </div>
+</div>
+{% endblock %}

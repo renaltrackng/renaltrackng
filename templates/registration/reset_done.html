@@ -1,1 +1,10 @@
-{% extends 'base.html' %}{% block auth_content %}<div class="simple-auth"><section class="panel form-panel"><h1>Check your inbox.</h1><p>If this email belongs to an eligible account, a reset link will be sent. In the local demo, contact your administrator for an access link.</p><a class="btn btn-primary" href="{% url 'login' %}">Back to sign in</a></section></div>{% endblock %}
+{% extends 'base.html' %}{% load static ui %}{% block title %}Check your inbox · RenalTrack{% endblock %}
+{% block auth_content %}<div class="simple-auth-page"><div class="simple-auth">
+<a class="brand" href="{% url 'login' %}"><img class="brand-mark" src="{% static 'brand/mark-128.png' %}" alt="" width="40" height="40"><span class="brand-name">Renal<b>Track</b></span></a>
+<section class="panel">
+  <span class="auth-icon">{% icon 'send' %}</span>
+  <h1>Check your inbox</h1>
+  <p>If an active account uses this email address, a password reset link is on its way. The link expires in one hour.</p>
+  <p>Didn't get it? Check your spam folder, or ask your administrator to send you a new access link.</p>
+  <a class="btn btn-primary btn-lg" href="{% url 'login' %}">Back to sign in</a>
+</section></div></div>{% endblock %}

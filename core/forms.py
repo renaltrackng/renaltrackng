@@ -15,9 +15,9 @@ class LoginForm(AuthenticationForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'current-password', 'placeholder': 'Enter your password'}))
 
 class StartForm(forms.Form):
-    consent = forms.BooleanField(label='I have explained this demo notice and recorded the participant’s agreement.')
-    identity_verified = forms.BooleanField(required=False, label='I have verified this returning participant’s identity.')
-    name = forms.CharField(max_length=120, required=False, label='Demo participant name or identifier')
+    consent = forms.BooleanField(label='I have explained the consent notice and the patient has agreed to take part.')
+    identity_verified = forms.BooleanField(required=False, label='I have confirmed this returning patient’s identity.')
+    name = forms.CharField(max_length=120, required=False, label='Patient full name', widget=forms.TextInput(attrs={'placeholder': 'e.g. Amara Nwosu', 'autocomplete': 'off'}))
     def __init__(self, *args, patient=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.patient = patient
@@ -36,13 +36,13 @@ class RiskForm(forms.Form):
 class UploadForm(forms.Form):
     revision = forms.IntegerField(widget=forms.HiddenInput)
     request_key = forms.UUIDField(widget=forms.HiddenInput)
-    product = forms.CharField(max_length=140, initial='Demo strip — not for clinical use')
-    lot = forms.CharField(max_length=80, label='Lot / batch number')
+    product = forms.CharField(max_length=140, label='Test strip product', widget=forms.TextInput(attrs={'placeholder': 'Product name as printed on the pack'}))
+    lot = forms.CharField(max_length=80, label='Lot / batch number', widget=forms.TextInput(attrs={'placeholder': 'e.g. UA24117'}))
     expiry = forms.DateField(label='Expiry date', widget=forms.DateInput(attrs={'type': 'date'}))
     captured_at = forms.DateTimeField(label='Photo captured at (Lagos time)', widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}))
-    image = forms.ImageField(label='Strip photograph', widget=forms.FileInput(attrs={'accept': 'image/jpeg,image/png', 'capture': 'environment'}))
-    note = forms.CharField(max_length=500, required=False, widget=forms.Textarea(attrs={'rows': 3}), label='Capture / repeat notes')
-    confirmed = forms.BooleanField(label='I checked the image and the information above before submitting.')
+    image = forms.ImageField(label='Strip photo', widget=forms.FileInput(attrs={'accept': 'image/jpeg,image/png', 'capture': 'environment'}))
+    note = forms.CharField(max_length=500, required=False, widget=forms.Textarea(attrs={'rows': 3}), label='Notes (optional)')
+    confirmed = forms.BooleanField(label='I have checked the photo and the details above are correct.')
     def clean_expiry(self):
         value = self.cleaned_data['expiry']
         if value < timezone.localdate(): raise forms.ValidationError('The strip expiry date has passed.')
