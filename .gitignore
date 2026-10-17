@@ -1,0 +1,36 @@
+.venv/
+.runtime/
+__pycache__/
+*.pyc
+.env
+*.sqlite3
+private_media/
+staticfiles/
+tmp/
+local-secret.key
+DEMO_ACCESS.md
+
+# ChatGPT project reference material and local tooling
+/sources/
+/AGENTS.md
+/.agents/
+/.codex/
+/.aws/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets, exports, backups, logs and database sidecars
+.env.*
+!.env.example
+*.sqlite3-*
+*.log
+*.sql
+*.sql.gz
+backups/
+*.pem
+*.key
+.coverage
+htmlcov/
+.pytest_cache/

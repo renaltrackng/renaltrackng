@@ -1,0 +1,34 @@
+from django.urls import path, reverse_lazy
+from django.contrib.auth import views as auth_views
+from core import views
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('activate/<uidb64>/<token>/', views.activate, name='activate'),
+    path('forgot-password/', auth_views.PasswordResetView.as_view(template_name='registration/reset.html', email_template_name='registration/reset_email.txt', success_url=reverse_lazy('password_reset_done')), name='password_reset'),
+    path('forgot-password/sent/', auth_views.PasswordResetDoneView.as_view(template_name='registration/reset_done.html'), name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/reset_confirm.html'), name='password_reset_confirm'),
+    path('reset/complete/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/reset_complete.html'), name='password_reset_complete'),
+    path('screenings/', views.screening_list, name='screenings'),
+    path('screenings/new/', views.screening_start, name='screening_start'),
+    path('screenings/<uuid:pk>/', views.screening_detail, name='screening_detail'),
+    path('screenings/<uuid:pk>/risk-factors/', views.screening_risks, name='screening_risks'),
+    path('screenings/<uuid:pk>/upload/', views.screening_upload, name='screening_upload'),
+    path('images/<uuid:pk>/', views.protected_image, name='protected_image'),
+    path('patients/', views.patient_list, name='patients'),
+    path('patients/<uuid:pk>/', views.patient_detail, name='patient_detail'),
+    path('notifications/', views.notifications, name='notifications'),
+    path('profile/', views.profile, name='profile'),
+    path('profile/password/', views.password_change, name='password_change'),
+    path('facilities/', views.facilities, name='facilities'),
+    path('facilities/new/', views.facility_edit, name='facility_create'),
+    path('facilities/<int:pk>/edit/', views.facility_edit, name='facility_edit'),
+    path('team/', views.users, name='users'),
+    path('team/new/', views.user_edit, name='user_create'),
+    path('team/<int:pk>/edit/', views.user_edit, name='user_edit'),
+    path('team/<int:pk>/invite/', views.user_invite, name='user_invite'),
+    path('audit/', views.audit_log, name='audit'),
+    path('protocols/', views.protocols, name='protocols'),
+]
