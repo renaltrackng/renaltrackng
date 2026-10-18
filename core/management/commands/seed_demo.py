@@ -16,7 +16,7 @@ from core.services import start_screening, submit_attempt, claim_review, save_re
 MICRAL_OPTIONS = ['Negative (Neg.)', '20 mg/L', '50 mg/L', '100 mg/L']
 
 PROTOCOL = {
-    'version': 'UA-1.0',
+    'version': 'UA-MICRAL-DEMO-1.0',
     'name': 'Urine albumin screening (Micral-Test)',
     'instructions': 'Collect a fresh urine sample in a clean, dry container. Dip the Micral-Test strip so the urine level sits between the two black bars and hold it there for about 5 seconds. Remove the strip, lay it flat, and after 1 minute compare the test pad with the colour chart on the vial. Photograph the strip beside the chart while the colour is still within the reading time.',
     'observation_options': MICRAL_OPTIONS,

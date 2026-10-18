@@ -2,3 +2,4 @@ Django==5.2.18
 PyMySQL[rsa]==1.2.3
 Pillow>=11.0,<13
 waitress==3.0.2
+whitenoise==6.12.0

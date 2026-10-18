@@ -36,4 +36,6 @@ Configure SMTP variables separately for account invitation/password-reset email.
 
 ## Release status
 
+Migration `0003_micral_test_observations` intentionally preserves existing protocols, review observations, notes and strip metadata. Revised showcase content uses the separate `UA-MICRAL-DEMO-1.0` protocol version when explicitly seeded; running migrations never creates or selects that new protocol. Existing clinical records are not converted between scales. If the earlier rewriting migration has already executed anywhere, this fix does not undo it; recover original values only from a verified backup or authorised audit review.
+
 This deployment preserves the existing `DEMO_MODE=1` restriction and real-patient release lock. Hosting does not approve clinical instructions or remove the remaining MFA/governance prerequisites. Client-approved design and showcase choices are unchanged.
