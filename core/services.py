@@ -1,11 +1,22 @@
 from datetime import timedelta
-from django.db import transaction
+from django.db import transaction, models
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied, ValidationError
 from .models import Facility, Patient, Screening, Consent, Attempt, Review, Notification, Audit, User
 
 def audit(user, action, target, detail=''):
     Audit.objects.create(actor=user, action=action, target=str(target), detail=detail)
+
+
+def notify(users, screening, text, exclude=None):
+    recipients = {u for u in users if u.is_active and (exclude is None or u.pk != exclude.pk)}
+    Notification.objects.bulk_create([Notification(user=u, screening=screening, text=text[:160]) for u in recipients])
+
+
+def reviewers_for(facility):
+    """Everyone who can review this facility's screenings: assigned reviewers and administrators."""
+    return User.objects.filter(is_active=True).filter(
+        models.Q(role='reviewer', assigned_facilities=facility) | models.Q(role='admin')).distinct()
 
 @transaction.atomic
 def start_screening(user, protocol, name=None, patient=None, facility=None):
@@ -53,6 +64,8 @@ def submit_attempt(user, screening_id, data):
             screening.claim_expires = None
             screening.save()
             audit(user, 'Screening submitted', screening.pk, f'Attempt {attempt.number}')
+            text = 'Repeat attempt awaiting review' if attempt.number > 1 else 'New screening awaiting review'
+            transaction.on_commit(lambda: notify(reviewers_for(screening.facility), screening, text, exclude=user))
             return screening
     except Exception:
         if saved_image:
@@ -89,8 +102,15 @@ def save_review(user, screening_id, data):
     screening.claim_expires = None
     screening.save()
     recipients = set(User.objects.filter(facility=screening.facility, role='staff', is_active=True))
-    if screening.submitted_by.is_active and screening.submitted_by_id != user.pk:
-        recipients.add(screening.submitted_by)
-    Notification.objects.bulk_create([Notification(user=u, screening=screening) for u in recipients])
+    recipients.add(screening.submitted_by)
+    if data.get('amendment_reason'):
+        text = 'Review amended — please check the updated result'
+    else:
+        text = {'reviewed': 'Review completed — result is ready',
+                'repeat': 'Repeat requested — please take a new photo',
+                'unreadable': 'Photo could not be read — see reviewer note'}.get(data['decision'], 'A screening review has been updated.')
+    notify(recipients, screening, text, exclude=user)
+    # Clear "awaiting review" alerts for other reviewers once someone has dealt with it.
+    Notification.objects.filter(screening=screening, read=False, text__endswith='awaiting review').update(read=True)
     audit(user, 'Review amended' if data.get('amendment_reason') else 'Review saved', screening.pk, f'Version {screening.reviews.count()}; {data["decision"]}')
     return screening

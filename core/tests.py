@@ -173,11 +173,11 @@ class WorkflowTests(TestCase):
         response = self.client.post(reverse('screening_detail', args=[s.pk]), self.review_data(s))
         self.assertRedirects(response, reverse('screening_detail', args=[s.pk]))
         self.client.force_login(self.staff)
-        self.assertContains(self.client.get(reverse('notifications')), 'A screening review has been updated')
+        self.assertContains(self.client.get(reverse('notifications')), 'Review completed')
         response = self.client.get(reverse('screening_detail', args=[s.pk]))
         self.assertContains(response, 'Demo observation')
         self.assertContains(response, 'Demo next step')
-        self.assertFalse(Notification.objects.get().read is False)
+        self.assertTrue(Notification.objects.get(user=self.staff).read)
     def test_revoked_reviewer_assignment_blocks_existing_claim(self):
         s = self.submitted(); claim_review(self.reviewer, s.pk)
         self.reviewer.assigned_facilities.clear()
@@ -258,3 +258,41 @@ class FindPatientFirstTests(TestCase):
         response = self.client.get(reverse('screening_start'), {'new': '1', 'name': 'Zara'})
         self.assertTemplateUsed(response, 'screenings/start.html')
         self.assertContains(response, 'value="Zara"')
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ReviewerQueueAndNotificationTests(TestCase):
+    def setUp(self):
+        self.a = Facility.objects.create(name='North', code='NTH')
+        self.b = Facility.objects.create(name='South', code='STH')
+        self.staff = User.objects.create_user(username='s', email='s@example.com', password='Unique-demo-secret-42', role='staff', facility=self.a)
+        self.reviewer = User.objects.create_user(username='r', email='r@example.com', password='Unique-demo-secret-42', role='reviewer')
+        self.reviewer.assigned_facilities.add(self.a)
+        self.other_reviewer = User.objects.create_user(username='r2', email='r2@example.com', password='Unique-demo-secret-42', role='reviewer')
+        self.other_reviewer.assigned_facilities.add(self.b)
+        self.protocol = Protocol.objects.create(name='P', version='q-1', instructions='i', observation_options=['O'], next_steps=['N'], consent_text='c')
+
+    def submit(self, name):
+        s = start_screening(self.staff, self.protocol, name)
+        s.risk_factors = {'diabetes': 'no', 'hypertension': 'no', 'kidney_disease': 'no', 'family_history': 'no'}; s.save()
+        buf = io.BytesIO(); Image.new('RGB', (30, 30), 'white').save(buf, 'PNG')
+        with self.captureOnCommitCallbacks(execute=True):
+            submit_attempt(self.staff, s.pk, {'revision': s.revision, 'request_key': uuid.uuid4(), 'product': 'P', 'lot': 'L', 'expiry': timezone.localdate() + timedelta(days=3), 'captured_at': timezone.now(), 'image': SimpleUploadedFile('a.png', buf.getvalue()), 'note': ''})
+        s.refresh_from_db(); return s
+
+    def test_assigned_reviewer_is_notified_of_new_submission(self):
+        s = self.submit('Ada')
+        self.assertTrue(Notification.objects.filter(user=self.reviewer, screening=s, text='New screening awaiting review').exists())
+        self.assertFalse(Notification.objects.filter(user=self.other_reviewer).exists())
+        self.client.force_login(self.reviewer)
+        self.assertContains(self.client.get(reverse('notifications')), 'New screening awaiting review')
+
+    def test_pending_screenings_lead_the_queue(self):
+        first = self.submit('First'); done = self.submit('Done'); last = self.submit('Last')
+        claim_review(self.reviewer, done.pk)
+        save_review(self.reviewer, done.pk, {'revision': done.revision, 'decision': 'reviewed', 'observation': 'O', 'next_step': 'N', 'note': 'ok'})
+        Screening.objects.filter(pk=first.pk).update(submitted_at=timezone.now() - timedelta(days=2))
+        Screening.objects.filter(pk=done.pk).update(submitted_at=timezone.now() + timedelta(hours=1))
+        self.client.force_login(self.reviewer)
+        order = [s.pk for s in self.client.get(reverse('screenings')).context['page']]
+        self.assertEqual(order, [first.pk, last.pk, done.pk])

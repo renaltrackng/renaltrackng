@@ -11,7 +11,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count, Max
+from django.db.models import Q, Count, Max, Case, When, Value, IntegerField, F
 from django.http import FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -24,19 +24,6 @@ from .forms import LoginForm, StartForm, RiskForm, UploadForm, ReviewForm, Facil
 from .access import screenings_for, patients_for, facilities_for
 from . import dashboard as dashboard_ui
 from .services import start_screening, submit_attempt, claim_review, save_review, reviewer_allowed, audit
-
-def healthcheck(request):
-    from django.db import connection, DatabaseError
-    from django.http import JsonResponse
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute('SELECT 1')
-            cursor.fetchone()
-    except DatabaseError:
-        return JsonResponse({'status': 'unavailable'}, status=503)
-    response = JsonResponse({'status': 'ok'})
-    response['Cache-Control'] = 'no-store'
-    return response
 
 def role_required(*roles):
     def decorator(view):
@@ -127,7 +114,15 @@ def screening_list(request):
         try: date = parse_date(request.GET['date'])
         except ValueError: date = None
         if date: qs = qs.filter(submitted_at__date=date)
-    qs = qs.order_by('submitted_at', 'created_at') if status == 'pending' else qs.order_by('-created_at')
+    if status == 'pending':
+        qs = qs.order_by('submitted_at', 'created_at')
+    elif request.user.role in ('reviewer', 'admin') and not status:
+        # Review queue: anything awaiting review comes first (longest-waiting at the top), then the rest newest first.
+        waiting = Case(When(status='pending', then=Value(0)), default=Value(1), output_field=IntegerField())
+        oldest_first = Case(When(status='pending', then=F('submitted_at')), default=None)
+        qs = qs.order_by(waiting, oldest_first.asc(nulls_last=True), F('submitted_at').desc(nulls_last=True), '-created_at')
+    else:
+        qs = qs.order_by('-created_at')
     return render(request, 'screenings/list.html', {'section': 'screenings', 'page': Paginator(qs, 15).get_page(request.GET.get('page')), 'statuses': Screening.Status.choices, 'facilities': facilities_for(request.user), 'query': query, 'selected_status': status})
 
 @login_required
