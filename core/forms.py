@@ -2,6 +2,7 @@ import io
 import warnings
 from PIL import Image, ImageOps
 from django import forms
+from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -18,9 +19,14 @@ class StartForm(forms.Form):
     consent = forms.BooleanField(label='I have explained the consent notice and the patient has agreed to take part.')
     identity_verified = forms.BooleanField(required=False, label='I have confirmed this returning patient’s identity.')
     name = forms.CharField(max_length=120, required=False, label='Patient full name', widget=forms.TextInput(attrs={'placeholder': 'e.g. Amara Nwosu', 'autocomplete': 'off'}))
-    def __init__(self, *args, patient=None, **kwargs):
+    def __init__(self, *args, patient=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.patient = patient
+        if user is not None and user.role == 'admin' and not patient:
+            self.fields['facility'] = forms.ModelChoiceField(
+                queryset=Facility.objects.filter(active=True).order_by('name'), empty_label='Select a facility',
+                label='Facility', help_text='The patient will be registered at this facility and get its patient ID prefix.')
+            self.order_fields(['consent', 'facility', 'name'])
         if patient:
             self.fields.pop('name')
             self.fields['identity_verified'].required = True
@@ -102,21 +108,67 @@ class FacilityForm(forms.ModelForm):
     def clean_code(self): return self.cleaned_data['code'].upper()
 
 class UserForm(forms.ModelForm):
+    password1 = forms.CharField(label='Password', required=False, strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'placeholder': 'At least 12 characters'}))
+    password2 = forms.CharField(label='Confirm password', required=False, strip=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'placeholder': 'Type the password again'}))
+
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'role', 'facility', 'assigned_facilities', 'can_review', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'role', 'facility', 'assigned_facilities', 'is_active']
         widgets = {'assigned_facilities': forms.CheckboxSelectMultiple()}
+        labels = {
+            'facility': 'Facility',
+            'assigned_facilities': 'Facilities this reviewer covers',
+            'is_active': 'Account is active',
+        }
+        help_texts = {
+            'facility': 'The facility where this staff member registers patients and submits screenings.',
+            'assigned_facilities': 'The reviewer will only see screenings from the facilities ticked here.',
+            'is_active': 'Untick to block sign-in without deleting the account or its records.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['facility'].empty_label = 'Select a facility'
+        self.creating = self.instance.pk is None
+        if self.creating:
+            self.fields['first_name'].required = True
+            self.fields['last_name'].required = True
+            self.fields['password1'].required = True
+            self.fields['password2'].required = True
+        else:
+            self.fields['password1'].label = 'New password'
+            self.fields['password1'].help_text = 'Leave both password fields blank to keep the current password.'
+            self.fields['password1'].widget.attrs['placeholder'] = 'Leave blank to keep current password'
+            self.fields['password2'].label = 'Confirm new password'
+            self.fields['password2'].widget.attrs['placeholder'] = ''
+
     def clean_email(self):
         value = self.cleaned_data['email'].strip().lower()
         if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists(): raise forms.ValidationError('This email is already in use.')
         return value
+
     def clean(self):
         data = super().clean()
-        if data.get('role') == 'staff':
+        role = data.get('role')
+        if role == 'staff':
             if not data.get('facility') or not data['facility'].active: self.add_error('facility', 'Choose an active facility for staff.')
-            if data.get('assigned_facilities'): self.add_error('assigned_facilities', 'Staff cannot have reviewer assignments.')
-        elif data.get('role'): data['facility'] = None
-        if data.get('role') != 'admin': data['can_review'] = False
+            data['assigned_facilities'] = Facility.objects.none()
+        else:
+            data['facility'] = None
+        if role == 'reviewer':
+            if not data.get('assigned_facilities'): self.add_error('assigned_facilities', 'Choose at least one facility for this reviewer.')
+        elif role == 'admin':
+            data['assigned_facilities'] = Facility.objects.none()
+        p1, p2 = data.get('password1'), data.get('password2')
+        if p1 or p2:
+            if p1 != p2:
+                self.add_error('password2', 'The two passwords do not match.')
+            else:
+                candidate = self.instance if not self.creating else User(email=data.get('email', ''), first_name=data.get('first_name', ''), last_name=data.get('last_name', ''))
+                try: password_validation.validate_password(p1, candidate)
+                except forms.ValidationError as exc: self.add_error('password1', exc)
         return data
 
 class ProfileForm(forms.ModelForm):

@@ -8,9 +8,16 @@ def audit(user, action, target, detail=''):
     Audit.objects.create(actor=user, action=action, target=str(target), detail=detail)
 
 @transaction.atomic
-def start_screening(user, protocol, name=None, patient=None):
-    if user.role != 'staff' or not user.facility_id: raise PermissionDenied
-    facility = Facility.objects.select_for_update().get(pk=user.facility_id, active=True)
+def start_screening(user, protocol, name=None, patient=None, facility=None):
+    if user.role == 'staff':
+        if not user.facility_id: raise PermissionDenied
+        facility_id = user.facility_id
+    elif user.role == 'admin':
+        facility_id = patient.facility_id if patient is not None else getattr(facility, 'pk', None)
+        if not facility_id: raise PermissionDenied
+    else:
+        raise PermissionDenied
+    facility = Facility.objects.select_for_update().get(pk=facility_id, active=True)
     if patient is not None and patient.facility_id != facility.pk: raise PermissionDenied
     if patient is None:
         patient = Patient.objects.create(public_id=f'{facility.code}-{facility.next_patient:06d}', name=name, facility=facility, created_by=user)
@@ -27,7 +34,8 @@ def submit_attempt(user, screening_id, data):
     try:
         with transaction.atomic():
             screening = Screening.objects.select_for_update().select_related('facility').get(pk=screening_id)
-            if user.role != 'staff' or user.facility_id != screening.facility_id or not screening.facility.active: raise PermissionDenied
+            if not screening.facility.active: raise PermissionDenied
+            if not (user.role == 'admin' or (user.role == 'staff' and user.facility_id == screening.facility_id)): raise PermissionDenied
             existing = Attempt.objects.filter(request_key=data['request_key']).first()
             if existing:
                 if existing.screening_id != screening.pk: raise ValidationError('This submission token has already been used.')
@@ -80,6 +88,9 @@ def save_review(user, screening_id, data):
     screening.claimed_by = None
     screening.claim_expires = None
     screening.save()
-    Notification.objects.bulk_create([Notification(user=u, screening=screening) for u in User.objects.filter(facility=screening.facility, role='staff', is_active=True)])
+    recipients = set(User.objects.filter(facility=screening.facility, role='staff', is_active=True))
+    if screening.submitted_by.is_active and screening.submitted_by_id != user.pk:
+        recipients.add(screening.submitted_by)
+    Notification.objects.bulk_create([Notification(user=u, screening=screening) for u in recipients])
     audit(user, 'Review amended' if data.get('amendment_reason') else 'Review saved', screening.pk, f'Version {screening.reviews.count()}; {data["decision"]}')
     return screening

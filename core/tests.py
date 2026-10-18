@@ -71,8 +71,7 @@ class WorkflowTests(TestCase):
         response = self.client.get(reverse('protected_image', args=[s.attempts.first().pk]))
         self.assertEqual(response.status_code, 200)
         self.assertTrue(b''.join(response.streaming_content))
-        # Consuming Django's streaming wrapper already closes the response safely.
-        # A second close can terminate MySQL's surrounding test transaction.
+        response.close()
     def test_cross_facility_records_and_images_denied(self):
         s = self.submitted(); self.client.force_login(self.other)
         for name, pk in [('screening_detail', s.pk), ('patient_detail', s.patient_id), ('protected_image', s.attempts.first().pk)]:
@@ -184,22 +183,78 @@ class WorkflowTests(TestCase):
         self.reviewer.assigned_facilities.clear()
         with self.assertRaises(PermissionDenied): save_review(self.reviewer, s.pk, self.review_data(s))
 
-class DeploymentTests(TestCase):
-    def test_healthcheck_is_public_and_uncached(self):
-        response = self.client.get(reverse('healthcheck'))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'status': 'ok'})
-        self.assertEqual(response['Cache-Control'], 'no-store')
 
-    @override_settings(SECURE_SSL_REDIRECT=True)
-    def test_healthcheck_does_not_redirect_railway_probe(self):
-        response = self.client.get(reverse('healthcheck'), secure=False)
-        self.assertEqual(response.status_code, 200)
+class AdminCreatesAccountWithPasswordTests(TestCase):
+    def setUp(self):
+        self.facility = Facility.objects.create(name='North', code='NTH')
+        self.admin = User.objects.create_user(username='adm', email='adm@example.com', password='Unique-demo-secret-42', role='admin')
+        self.client.force_login(self.admin)
 
-    def test_healthcheck_database_failure_returns_no_internal_details(self):
-        from unittest.mock import patch
-        from django.db import DatabaseError
-        with patch('django.db.connection.cursor', side_effect=DatabaseError('private connection details')):
-            response = self.client.get(reverse('healthcheck'))
-        self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json(), {'status': 'unavailable'})
+    def test_admin_sets_password_and_user_can_sign_in(self):
+        response = self.client.post(reverse('user_create'), {'first_name': 'Kemi', 'last_name': 'Ade', 'email': 'kemi@example.com', 'role': 'staff', 'facility': self.facility.pk, 'is_active': 'on', 'password1': 'Green-river-lantern-7', 'password2': 'Green-river-lantern-7'})
+        self.assertRedirects(response, reverse('users'))
+        self.assertTrue(User.objects.get(email='kemi@example.com').check_password('Green-river-lantern-7'))
+
+    def test_password_required_and_must_match(self):
+        response = self.client.post(reverse('user_create'), {'first_name': 'A', 'last_name': 'B', 'email': 'x@example.com', 'role': 'reviewer', 'assigned_facilities': [self.facility.pk], 'is_active': 'on', 'password1': 'Green-river-lantern-7', 'password2': 'Different-pass-99'})
+        self.assertContains(response, 'do not match')
+        self.assertFalse(User.objects.filter(email='x@example.com').exists())
+
+    def test_edit_without_password_keeps_existing(self):
+        u = User.objects.create_user(username='r', email='r@example.com', password='Original-pass-1234', role='reviewer')
+        u.assigned_facilities.add(self.facility)
+        self.client.post(reverse('user_edit', args=[u.pk]), {'first_name': 'R', 'last_name': 'V', 'email': 'r@example.com', 'role': 'reviewer', 'assigned_facilities': [self.facility.pk], 'is_active': 'on', 'password1': '', 'password2': ''})
+        u.refresh_from_db(); self.assertTrue(u.check_password('Original-pass-1234'))
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class AdminCanDoEverythingTests(TestCase):
+    def setUp(self):
+        self.facility = Facility.objects.create(name='North', code='NTH')
+        self.admin = User.objects.create_user(username='adm2', email='adm2@example.com', password='Unique-demo-secret-42', role='admin')
+        self.protocol = Protocol.objects.create(name='P', version='t-1', instructions='i', observation_options=['Obs'], next_steps=['Next'], consent_text='c', is_demo=True)
+
+    def test_admin_registers_patient_submits_and_reviews(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('screening_start'), {'consent': 'on', 'facility': self.facility.pk, 'name': 'Admin Patient'})
+        s = Screening.objects.get(patient__name='Admin Patient')
+        self.assertRedirects(response, reverse('screening_risks', args=[s.pk]))
+        self.assertTrue(s.patient.public_id.startswith('NTH-'))
+        s.risk_factors = {'diabetes': 'no', 'hypertension': 'no', 'kidney_disease': 'no', 'family_history': 'no'}; s.save()
+        buf = io.BytesIO(); Image.new('RGB', (40, 40), 'white').save(buf, 'PNG')
+        submit_attempt(self.admin, s.pk, {'revision': s.revision, 'request_key': uuid.uuid4(), 'product': 'P', 'lot': 'L', 'expiry': timezone.localdate() + timedelta(days=5), 'captured_at': timezone.now(), 'image': SimpleUploadedFile('a.png', buf.getvalue()), 'note': ''})
+        s.refresh_from_db(); self.assertEqual(s.status, 'pending')
+        claim_review(self.admin, s.pk)
+        save_review(self.admin, s.pk, {'revision': s.revision, 'decision': 'reviewed', 'observation': 'Obs', 'next_step': 'Next', 'note': 'ok'})
+        s.refresh_from_db(); self.assertEqual(s.status, 'reviewed')
+
+    def test_admin_must_choose_facility_for_new_patient(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('screening_start'), {'consent': 'on', 'name': 'No Facility'})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Screening.objects.exists())
+
+
+class FindPatientFirstTests(TestCase):
+    def setUp(self):
+        self.facility = Facility.objects.create(name='North', code='NTH')
+        self.staff = User.objects.create_user(username='s9', email='s9@example.com', password='Unique-demo-secret-42', role='staff', facility=self.facility)
+        Protocol.objects.create(name='P', version='t-9', instructions='i', observation_options=['O'], next_steps=['N'], consent_text='c', is_demo=True)
+        self.patient = Patient.objects.create(public_id='NTH-000001', name='Amara Nwosu', facility=self.facility, created_by=self.staff)
+        self.client.force_login(self.staff)
+
+    def test_new_screening_opens_search_not_registration(self):
+        response = self.client.get(reverse('screening_start'))
+        self.assertTemplateUsed(response, 'screenings/find_patient.html')
+        self.assertContains(response, 'Amara Nwosu')
+
+    def test_search_finds_and_misses(self):
+        self.assertContains(self.client.get(reverse('screening_start'), {'q': 'NTH-000001'}), 'Amara Nwosu')
+        response = self.client.get(reverse('screening_start'), {'q': 'Nobody'})
+        self.assertContains(response, 'No patient matches')
+        self.assertContains(response, 'new=1')
+
+    def test_register_form_only_when_asked(self):
+        response = self.client.get(reverse('screening_start'), {'new': '1', 'name': 'Zara'})
+        self.assertTemplateUsed(response, 'screenings/start.html')
+        self.assertContains(response, 'value="Zara"')

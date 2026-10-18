@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-heading">
   <div><span class="eyebrow">{% icon 'users' %} Patients</span><h1>Patient directory</h1><p>Find a returning patient before starting a new screening.</p></div>
-  {% if user.role == 'staff' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'user-plus' %} Register &amp; screen</a></div>{% endif %}
+  {% if user.can_screen %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'user-plus' %} Register &amp; screen</a></div>{% endif %}
 </div>
 <section class="panel">
   <form class="filter-bar" method="get">

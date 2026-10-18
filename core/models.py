@@ -32,7 +32,9 @@ class User(AbstractUser):
     @property
     def initials(self): return ''.join(x[0] for x in self.display_name.split()[:2]).upper()
     @property
-    def is_reviewer(self): return self.role == self.Role.REVIEWER or (self.role == self.Role.ADMIN and self.can_review)
+    def is_reviewer(self): return self.role in (self.Role.REVIEWER, self.Role.ADMIN)
+    @property
+    def can_screen(self): return self.role in (self.Role.STAFF, self.Role.ADMIN)
 
 class Patient(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

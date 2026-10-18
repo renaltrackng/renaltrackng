@@ -28,6 +28,20 @@
     });
   });
 
+  // Team member form: only show the settings that apply to the chosen role
+  document.querySelectorAll('form[data-role-form]').forEach(form => {
+    const role = form.querySelector('select[name=role]');
+    if (!role) return;
+    const rules = { facility: ['staff'], assigned_facilities: ['reviewer'] };
+    const sync = () => {
+      Object.entries(rules).forEach(([name, roles]) => {
+        const field = form.querySelector(`[data-field="${name}"]`);
+        if (field) field.hidden = !roles.includes(role.value);
+      });
+    };
+    role.addEventListener('change', sync); sync();
+  });
+
   // Photo preview before submitting
   const fileInput = document.querySelector('input[type=file]');
   const preview = document.getElementById('image-preview');

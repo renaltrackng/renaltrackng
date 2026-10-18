@@ -11,13 +11,13 @@
       <p><a class="id-label" href="{% url 'patient_detail' screening.patient.pk %}">{{ screening.patient.public_id }}</a> <span>{{ screening.facility.name }}</span> {% include 'partials/status.html' %}</p>
     </div>
   </div>
-  {% if user.role == 'staff' %}
+  {% if user.can_screen %}
     {% if screening.status == 'draft' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_risks' screening.pk %}">Continue screening {% icon 'arrow-right' %}</a></div>
     {% elif screening.status == 'repeat' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_upload' screening.pk %}">{% icon 'camera' %} Submit repeat attempt</a></div>{% endif %}
   {% endif %}
 </div>
 
-{% if screening.status == 'pending' and user.role == 'staff' %}<div class="info-box amber">{% icon 'clock' %}<span><strong>Awaiting review.</strong> A reviewer will assess this submission shortly. You'll be notified here as soon as the result is ready.</span></div>{% endif %}
+{% if screening.status == 'pending' and user.can_screen %}<div class="info-box amber">{% icon 'clock' %}<span><strong>Awaiting review.</strong> A reviewer will assess this submission shortly. You'll be notified here as soon as the result is ready.</span></div>{% endif %}
 
 <div class="detail-grid">
   <div>

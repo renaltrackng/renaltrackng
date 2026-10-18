@@ -10,6 +10,6 @@
   <td class="cell-action"><a class="row-link" href="{% url 'screening_detail' screening.pk %}" aria-label="Open screening for {{ screening.patient.public_id }}">{% icon 'arrow-up-right' %}</a></td>
 </tr>
 {% empty %}
-<tr><td colspan="5"><div class="empty-state"><span class="empty-icon">{% icon 'clipboard-list' %}</span><h3>No screenings to show</h3><p>{% if request.GET %}Try clearing the filters to see more results.{% else %}New submissions will appear here as soon as they are made.{% endif %}</p>{% if user.role == 'staff' %}<a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} Start a screening</a>{% endif %}</div></td></tr>
+<tr><td colspan="5"><div class="empty-state"><span class="empty-icon">{% icon 'clipboard-list' %}</span><h3>No screenings to show</h3><p>{% if request.GET %}Try clearing the filters to see more results.{% else %}New submissions will appear here as soon as they are made.{% endif %}</p>{% if user.can_screen %}<a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} Start a screening</a>{% endif %}</div></td></tr>
 {% endfor %}
 </tbody></table></div>

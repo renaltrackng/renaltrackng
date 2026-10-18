@@ -11,7 +11,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.http import FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -38,12 +38,12 @@ def healthcheck(request):
     response['Cache-Control'] = 'no-store'
     return response
 
-def role_required(role):
+def role_required(*roles):
     def decorator(view):
         @wraps(view)
         @login_required
         def wrapped(request, *args, **kwargs):
-            if request.user.role != role: raise PermissionDenied
+            if request.user.role not in roles: raise PermissionDenied
             return view(request, *args, **kwargs)
         return wrapped
     return decorator
@@ -95,6 +95,8 @@ def dashboard(request):
     submitted = qs.exclude(status='draft')
     if request.user.role == 'reviewer':
         attention = submitted.filter(status='pending').order_by('submitted_at')[:4]
+    elif request.user.role == 'admin':
+        attention = qs.filter(status__in=['pending', 'repeat', 'unreadable', 'draft']).order_by('-created_at')[:5]
     else:
         attention = qs.filter(status__in=['repeat', 'unreadable', 'draft']).order_by('-created_at')[:4]
     return render(request, 'dashboard.html', {
@@ -140,7 +142,7 @@ def patient_detail(request, pk):
     patient = get_object_or_404(patients_for(request.user), pk=pk)
     return render(request, 'patients/detail.html', {'section': 'patients', 'patient': patient, 'screenings': screenings_for(request.user).filter(patient=patient).exclude(status='draft')})
 
-@role_required('staff')
+@role_required('staff', 'admin')
 def screening_start(request):
     protocol = Protocol.objects.filter(active=True, is_demo=settings.DEMO_MODE).order_by('-created_at').first()
     if not protocol:
@@ -148,14 +150,24 @@ def screening_start(request):
         return redirect('dashboard')
     patient = None
     if request.GET.get('patient'): patient = get_object_or_404(patients_for(request.user), pk=request.GET['patient'])
-    form = StartForm(request.POST or None, patient=patient)
+    registering = request.method == 'POST' or request.GET.get('new') == '1'
+    if patient is None and not registering:
+        # Step 0: find the patient first; registration is offered only if they're not on record.
+        query = request.GET.get('q', '').strip()
+        found = patients_for(request.user).annotate(last_screened=Max('screenings__submitted_at'), screening_count=Count('screenings'))
+        if query:
+            found = found.filter(Q(public_id__icontains=query) | Q(name__icontains=query)).order_by('name')
+        else:
+            found = found.order_by('-created_at')
+        return render(request, 'screenings/find_patient.html', {'section': 'screenings', 'query': query, 'results': found[:12]})
+    form = StartForm(request.POST or None, patient=patient, user=request.user, initial={'name': request.GET.get('name', '')})
     if request.method == 'POST' and form.is_valid():
-        screening = start_screening(request.user, protocol, form.cleaned_data.get('name'), patient)
+        screening = start_screening(request.user, protocol, form.cleaned_data.get('name'), patient, facility=form.cleaned_data.get('facility'))
         messages.success(request, 'Consent recorded. Your draft is saved.')
         return redirect('screening_risks', pk=screening.pk)
     return render(request, 'screenings/start.html', {'section': 'screenings', 'form': form, 'protocol': protocol, 'patient': patient})
 
-@role_required('staff')
+@role_required('staff', 'admin')
 def screening_risks(request, pk):
     screening = get_object_or_404(screenings_for(request.user), pk=pk, status='draft')
     form = RiskForm(request.POST or None, initial=screening.risk_factors)
@@ -171,7 +183,7 @@ def screening_risks(request, pk):
         return redirect('screening_upload', pk=screening.pk)
     return render(request, 'screenings/risks.html', {'section': 'screenings', 'screening': screening, 'form': form})
 
-@role_required('staff')
+@role_required('staff', 'admin')
 def screening_upload(request, pk):
     screening = get_object_or_404(screenings_for(request.user), pk=pk)
     if request.method != 'POST' and screening.status not in ('draft', 'repeat'): return redirect('screening_detail', pk=pk)
@@ -277,13 +289,20 @@ def user_edit(request, pk=None):
                 user = form.save(commit=False)
                 if obj is None:
                     user.username = uuid.uuid4().hex
-                    user.set_unusable_password()
+                password = form.cleaned_data.get('password1')
+                if password:
+                    user.set_password(password)
                 user.save()
                 form.save_m2m()
                 audit(request.user, 'Account updated' if obj else 'Account created', user.pk)
-            messages.success(request, 'Account saved. Use “Send access link” to invite or reset this user.')
+                if password and obj is not None:
+                    audit(request.user, 'Password set by administrator', user.pk)
+            if obj is None:
+                messages.success(request, f'Account created for {user.display_name}. They can now sign in with {user.email} and the password you set.')
+            else:
+                messages.success(request, 'Account updated.' + (' The new password is active now.' if password else ''))
             return redirect('users')
-    return render(request, 'generic_form.html', {'section': 'users', 'title': 'Edit account' if obj else 'Add team member', 'subtitle': 'Each person has an individual login. Staff can belong to one facility.', 'form': form, 'button': 'Save account'})
+    return render(request, 'generic_form.html', {'section': 'users', 'title': 'Edit account' if obj else 'Add team member', 'subtitle': 'Each person gets their own login. Choose a role to see the settings that apply to it.', 'form': form, 'button': 'Create account' if obj is None else 'Save changes', 'role_form': True})
 
 @require_POST
 @role_required('admin')

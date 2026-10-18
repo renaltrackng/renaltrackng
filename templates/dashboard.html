@@ -12,8 +12,9 @@
       <a class="btn btn-light" href="{% url 'patients' %}">{% icon 'search' %} Find patient</a>
       <a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a>
     {% elif user.role == 'admin' %}
+      <a class="btn btn-light" href="{% url 'facility_create' %}">{% icon 'building-2' %} Add facility</a>
       <a class="btn btn-light" href="{% url 'user_create' %}">{% icon 'user-plus' %} Add team member</a>
-      <a class="btn btn-primary" href="{% url 'facility_create' %}">{% icon 'plus' %} Add facility</a>
+      <a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a>
     {% else %}
       <a class="btn btn-primary" href="{% url 'screenings' %}?status=pending">Start reviewing {% icon 'arrow-right' %}</a>
     {% endif %}
@@ -92,11 +93,11 @@
     </section>
 
     <section class="panel">
-      <div class="panel-heading"><div><h2>{% if user.role == 'reviewer' %}Next in your queue{% else %}Needs attention{% endif %}</h2><p>{% if user.role == 'reviewer' %}Longest-waiting submissions first{% else %}Drafts, repeats and unreadable photos{% endif %}</p></div></div>
+      <div class="panel-heading"><div><h2>{% if user.role == 'reviewer' %}Next in your queue{% else %}Needs attention{% endif %}</h2><p>{% if user.role == 'reviewer' %}Longest-waiting submissions first{% elif user.role == 'admin' %}Awaiting review, drafts and repeats{% else %}Drafts, repeats and unreadable photos{% endif %}</p></div></div>
       {% if attention %}
       <ul class="attention-list">
         {% for s in attention %}
-        <li><a href="{% if s.status == 'draft' and user.role == 'staff' %}{% url 'screening_risks' s.pk %}{% elif s.status == 'repeat' and user.role == 'staff' %}{% url 'screening_upload' s.pk %}{% else %}{% url 'screening_detail' s.pk %}{% endif %}">
+        <li><a href="{% if s.status == 'draft' and user.can_screen %}{% url 'screening_risks' s.pk %}{% elif s.status == 'repeat' and user.can_screen %}{% url 'screening_upload' s.pk %}{% else %}{% url 'screening_detail' s.pk %}{% endif %}">
           <span class="stat-icon sm {% if s.status == 'repeat' %}tone-blue{% elif s.status == 'unreadable' %}tone-red{% elif s.status == 'pending' %}tone-amber{% else %}tone-grey{% endif %}">{% status_icon s.status as si %}{% icon si %}</span>
           <span class="meta"><strong>{{ s.patient.name }}</strong><small>{{ s.get_status_display }} · {% if s.submitted_at %}{{ s.submitted_at|timesince }} ago{% else %}started {{ s.created_at|timesince }} ago{% endif %}</small></span>
           {% icon 'chevron-right' cls='chev' %}

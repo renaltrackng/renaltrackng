@@ -7,7 +7,7 @@
     <span class="patient-avatar lg">{{ patient.name|make_list|first|upper }}</span>
     <div><span class="eyebrow">Patient history</span><h1>{{ patient.name }}</h1><p><span class="id-label">{{ patient.public_id }}</span> {{ patient.facility.name }} · Registered {{ patient.created_at|date:'d M Y' }}</p></div>
   </div>
-  {% if user.role == 'staff' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}?patient={{ patient.pk }}">{% icon 'plus' %} New screening</a></div>{% endif %}
+  {% if user.can_screen %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}?patient={{ patient.pk }}">{% icon 'plus' %} New screening</a></div>{% endif %}
 </div>
 <section class="panel">
   <div class="panel-heading"><div><h2>Screening history <span class="tiny-pill">{{ screenings|length }}</span></h2><p>Previous submissions and their reviewed outcomes.</p></div></div>

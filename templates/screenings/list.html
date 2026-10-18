@@ -7,7 +7,7 @@
     <h1>{% if user.role == 'reviewer' %}Your review queue{% else %}All screenings{% endif %}</h1>
     <p>{% if user.role == 'reviewer' %}Claim a submission, review the photo and record the outcome.{% else %}Every submission with a clear status and a traceable next step.{% endif %}</p>
   </div>
-  {% if user.role == 'staff' %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a></div>{% endif %}
+  {% if user.can_screen %}<div class="page-actions"><a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a></div>{% endif %}
 </div>
 <section class="panel">
   <div class="chip-row" role="navigation" aria-label="Filter by status">

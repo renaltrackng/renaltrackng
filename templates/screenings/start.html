@@ -1,17 +1,16 @@
 {% extends 'base.html' %}{% load ui %}
 {% block title %}New screening · RenalTrack{% endblock %}
 {% block content %}
-<a class="back-link" href="{% url 'screenings' %}">{% icon 'arrow-left' %} Screenings</a>
+<a class="back-link" href="{% url 'screening_start' %}">{% icon 'arrow-left' %} Back to patient search</a>
 <div class="page-heading"><div><span class="eyebrow">New screening · Step 1 of 3</span><h1>Start with consent</h1><p>Explain the screening before recording any patient details.</p></div></div>
 {% include 'partials/steps.html' with current=1 %}
 <div class="form-grid">
   <section class="panel form-panel">
     <h2>{% if patient %}Returning patient{% else %}Register a patient{% endif %}</h2>
     {% if patient %}
-      <div class="record-hero" style="margin:14px 0 20px"><span class="patient-avatar">{{ patient.name|make_list|first|upper }}</span><div><strong style="color:var(--ink)">{{ patient.name }}</strong><br><span class="id-label">{{ patient.public_id }}</span></div></div>
+      <div class="record-hero" style="margin:14px 0 20px"><span class="patient-avatar">{{ patient.name|make_list|first|upper }}</span><div><strong style="color:var(--ink)">{{ patient.name }}</strong><br><span class="id-label">{{ patient.public_id }}</span> <span class="muted">{{ patient.facility.name }}</span></div><a class="text-link" style="margin-left:auto" href="{% url 'screening_start' %}">Change patient</a></div>
     {% else %}
       <p class="muted">A patient ID is created automatically once consent is recorded.</p>
-      <div class="info-box blue">{% icon 'users' %}<span>Seen this patient before? <a href="{% url 'patients' %}">Find their existing record</a> to keep their history in one place.</span></div>
     {% endif %}
     <div class="consent-notice"><span class="eyebrow">{% icon 'file-check' %} Consent notice · {{ protocol.version }}</span><p>{{ protocol.consent_text }}</p></div>
     <form method="post" data-dirty-warning data-consent-gate>

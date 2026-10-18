@@ -9,7 +9,7 @@
 <section class="panel form-panel" style="margin-bottom:22px"><div class="record-hero"><span class="avatar lg">{{ user.initials }}</span><div><h2>{{ user.display_name }}</h2><p class="muted" style="margin:2px 0 0">{{ user.email }} · {{ user.get_role_display }}{% if user.facility %} · {{ user.facility.name }}{% endif %}</p></div></div></section>
 {% endif %}
 <section class="panel form-panel">
-  <form method="post" data-dirty-warning>
+  <form method="post" data-dirty-warning{% if role_form %} data-role-form{% endif %}>
     {% csrf_token %}{% include 'partials/form.html' %}
     <div class="form-actions"><button type="submit" class="btn btn-primary">{{ button|default:'Save changes' }}</button><a href="{% if section == 'facilities' %}{% url 'facilities' %}{% elif section == 'users' %}{% url 'users' %}{% else %}{% url 'dashboard' %}{% endif %}" class="btn btn-light">Cancel</a></div>
   </form>
