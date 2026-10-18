@@ -145,3 +145,24 @@ class LoginThrottle(models.Model):
     key = models.CharField(max_length=64, unique=True)
     failures = models.PositiveIntegerField(default=0)
     window_start = models.DateTimeField()
+
+
+class ContactMessage(models.Model):
+    class Kind(models.TextChoices):
+        PHARMACY = 'pharmacy', 'Pharmacist / pharmacy'
+        CHW = 'chw', 'Community Health Worker'
+        ORGANISATION = 'organisation', 'Healthcare organisation'
+        PARTNER = 'partner', 'Partner or investor'
+        INDIVIDUAL = 'individual', 'Individual / patient'
+        OTHER = 'other', 'Other'
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    kind = models.CharField('I am a', max_length=20, choices=Kind.choices, default=Kind.OTHER)
+    message = models.TextField(max_length=3000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+    is_spam = models.BooleanField(default=False)
+    ip_hash = models.CharField(max_length=64, blank=True)
+    class Meta: ordering = ['-created_at']
+    def __str__(self): return f'{self.name} <{self.email}>'

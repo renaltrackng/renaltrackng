@@ -1,11 +1,13 @@
 from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from core import views
-from .health import healthcheck
 
 urlpatterns = [
-    path('healthz/', healthcheck, name='healthcheck'),
-    path('', views.dashboard, name='dashboard'),
+    path('', views.landing, name='landing'),
+    path('contact/', views.contact_submit, name='contact_submit'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('messages/', views.contact_messages, name='contact_messages'),
+    path('messages/<int:pk>/', views.contact_message_action, name='contact_message_action'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('activate/<uidb64>/<token>/', views.activate, name='activate'),

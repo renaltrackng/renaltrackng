@@ -17,3 +17,9 @@ def status_icon(status):
         'pending': 'clock', 'reviewed': 'circle-check', 'repeat': 'refresh-cw',
         'unreadable': 'eye-off', 'draft': 'file-text',
     }.get(status, 'info')
+
+
+@register.simple_tag
+def brand(name, cls=''):
+    """Render a brand logo (Instagram, Facebook, WhatsApp, TikTok) from the sprite."""
+    return format_html('<svg class="bi {}" aria-hidden="true" focusable="false"><use href="#b-{}"></use></svg>', cls, name)

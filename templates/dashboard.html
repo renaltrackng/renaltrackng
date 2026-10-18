@@ -12,6 +12,7 @@
       <a class="btn btn-light" href="{% url 'patients' %}">{% icon 'search' %} Find patient</a>
       <a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a>
     {% elif user.role == 'admin' %}
+      {% if unread_messages %}<a class="btn btn-soft" href="{% url 'contact_messages' %}?show=unread">{% icon 'inbox' %} {{ unread_messages }} new enquir{{ unread_messages|pluralize:'y,ies' }}</a>{% endif %}
       <a class="btn btn-light" href="{% url 'facility_create' %}">{% icon 'building-2' %} Add facility</a>
       <a class="btn btn-light" href="{% url 'user_create' %}">{% icon 'user-plus' %} Add team member</a>
       <a class="btn btn-primary" href="{% url 'screening_start' %}">{% icon 'plus' %} New screening</a>

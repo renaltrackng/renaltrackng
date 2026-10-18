@@ -6,7 +6,7 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from .models import User, Facility, Patient, Protocol
+from .models import User, Facility, Patient, Protocol, ContactMessage
 
 ANSWERS = [('', 'Select an answer'), ('yes', 'Yes'), ('no', 'No'), ('unknown', 'Unknown'), ('not_provided', 'Not provided')]
 FACTORS = {'diabetes': 'Diabetes', 'hypertension': 'Hypertension', 'kidney_disease': 'Known kidney disease', 'family_history': 'Family history of kidney disease'}
@@ -175,3 +175,29 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name']
+
+
+class ContactForm(forms.ModelForm):
+    # Honeypot: invisible to people, tempting to bots. Odd name so browsers don't autofill it.
+    rt_hp_check = forms.CharField(required=False, widget=forms.TextInput(attrs={'tabindex': '-1', 'autocomplete': 'off', 'data-lpignore': 'true', 'data-1p-ignore': 'true', 'data-form-type': 'other'}))
+
+    class Meta:
+        model = ContactMessage
+        fields = ['name', 'email', 'phone', 'kind', 'message']
+        labels = {'name': 'Full name', 'email': 'Email address', 'phone': 'Phone / WhatsApp (optional)', 'kind': 'I am a', 'message': 'How can we help?'}
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Your full name', 'autocomplete': 'name'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'you@example.com', 'autocomplete': 'email'}),
+            'phone': forms.TextInput(attrs={'placeholder': '+234 …', 'autocomplete': 'tel'}),
+            'message': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Tell us about your pharmacy, community or partnership idea…'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['kind'].choices = [('', 'Select one')] + list(ContactMessage.Kind.choices)
+        self.fields['kind'].initial = ''
+
+    def clean_message(self):
+        value = self.cleaned_data['message'].strip()
+        if len(value) < 10: raise forms.ValidationError('Please write a little more so we can help.')
+        return value

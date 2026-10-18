@@ -1,0 +1,49 @@
+{% extends 'base.html' %}{% load ui %}
+{% block title %}Website enquiries · RenalTrack{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">{% icon 'inbox' %} Administration</span><h1>Website enquiries</h1><p>Messages sent through the contact form on the RenalTrack website.</p></div>
+  <div class="page-actions"><a class="btn btn-light" href="{% url 'landing' %}#contact" target="_blank" rel="noopener">{% icon 'globe' %} View website</a></div>
+</div>
+<div class="inbox-grid {% if selected %}has-selected{% endif %}">
+  <section class="panel inbox-list">
+    <div class="chip-row" style="padding-bottom:14px;border-bottom:1px solid var(--line-2)">
+      <a class="chip {% if show != 'unread' and show != 'filtered' %}on{% endif %}" href="?show=all">All <b>{{ total }}</b></a>
+      <a class="chip {% if show == 'unread' %}on{% endif %}" href="?show=unread">Unread <b>{{ unread_total }}</b></a>
+      {% if filtered_total or show == 'filtered' %}<a class="chip {% if show == 'filtered' %}on{% endif %}" href="?show=filtered" title="Messages caught by the spam filter">Filtered <b>{{ filtered_total }}</b></a>{% endif %}
+    </div>
+    {% for m in page %}
+      <a class="inbox-item {% if not m.read %}unread{% endif %} {% if selected and selected.pk == m.pk %}current{% endif %}" href="?show={{ show }}&amp;open={{ m.pk }}{% if page.number > 1 %}&amp;page={{ page.number }}{% endif %}">
+        <span class="avatar">{{ m.name|make_list|first|upper }}</span>
+        <span class="meta"><span class="row1"><strong>{{ m.name }}</strong><time>{{ m.created_at|date:'d M, H:i' }}</time></span><small>{{ m.get_kind_display }} · {{ m.email }}</small><span class="preview">{{ m.message|truncatechars:90 }}</span></span>
+      </a>
+    {% empty %}
+      <div class="empty-state"><span class="empty-icon">{% icon 'inbox' %}</span><h3>{% if show == 'unread' %}No unread messages{% elif show == 'filtered' %}Nothing filtered{% else %}No enquiries yet{% endif %}</h3><p>Messages from the website contact form will appear here.</p></div>
+    {% endfor %}
+    {% include 'partials/pagination.html' %}
+  </section>
+  <section class="panel inbox-detail">
+    {% if selected %}
+      <div class="panel-heading" style="align-items:flex-start">
+        <div class="record-hero"><span class="avatar lg">{{ selected.name|make_list|first|upper }}</span><div><h2>{{ selected.name }}</h2><p>{{ selected.get_kind_display }} · Received {{ selected.created_at|date:'l j F Y, H:i' }}</p></div></div>
+        <a class="icon-button ghost inbox-close" href="?show={{ show }}" aria-label="Close message">{% icon 'x' %}</a>
+      </div>
+      <div class="panel-body">
+        {% if selected.is_spam %}<div class="info-box amber">{% icon 'triangle-alert' %}<span><strong>Caught by the spam filter.</strong> If this looks like a genuine enquiry, move it to your inbox.</span><form method="post" action="{% url 'contact_message_action' selected.pk %}" style="margin-left:auto">{% csrf_token %}<button class="btn btn-light" name="action" value="notspam">Not spam</button></form></div>{% endif %}
+        <dl class="metadata">
+          <div><dt>Email</dt><dd><a href="mailto:{{ selected.email }}">{{ selected.email }}</a></dd></div>
+          <div><dt>Phone / WhatsApp</dt><dd>{% if selected.phone %}<a href="tel:{{ selected.phone }}">{{ selected.phone }}</a>{% else %}Not provided{% endif %}</dd></div>
+        </dl>
+        <div class="message-body">{{ selected.message|linebreaksbr }}</div>
+        <div class="form-actions" style="margin-top:20px">
+          <a class="btn btn-primary" href="mailto:{{ selected.email }}?subject={{ 'Re: your message to RenalTrack'|urlencode }}">{% icon 'mail' %} Reply by email</a>
+          <form method="post" action="{% url 'contact_message_action' selected.pk %}">{% csrf_token %}<button class="btn btn-light" name="action" value="unread">{% icon 'mail' %} Mark unread</button></form>
+          <form method="post" action="{% url 'contact_message_action' selected.pk %}" onsubmit="return confirm('Delete this message permanently?')">{% csrf_token %}<button class="btn btn-danger-soft" name="action" value="delete">{% icon 'trash-2' %} Delete</button></form>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state" style="padding:80px 24px"><span class="empty-icon">{% icon 'mail-open' %}</span><h3>Select a message</h3><p>Choose an enquiry on the left to read it in full and reply.</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

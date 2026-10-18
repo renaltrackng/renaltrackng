@@ -1,0 +1,307 @@
+{% load static ui %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08131a">
+  <title>RenalTrack · Early kidney-damage risk screening, made accessible</title>
+  <meta name="description" content="RenalTrack makes early kidney-damage risk screening more accessible across Nigeria through community pharmacies and Community Health Workers, with a digital platform for screening records and referral support.">
+  <meta property="og:title" content="RenalTrack · Early detection. Healthier tomorrows.">
+  <meta property="og:description" content="Community-based urine albumin screening with digital records and referral support, through pharmacies and Community Health Workers in Nigeria.">
+  <meta property="og:image" content="{% static 'brand/logo-full.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'brand/favicon-32.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'brand/apple-touch-icon.png' %}">
+  <link rel="preload" href="{% static 'fonts/plus-jakarta-sans-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'landing.css' %}">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body class="lp">
+{% include 'partials/icons.html' %}
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ============ Navigation ============ -->
+<header class="nav" id="top">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top" aria-label="RenalTrack home">
+      <img src="{% static 'brand/mark-128.png' %}" alt="" width="38" height="38">
+      <span>Renal<b>Track</b></span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#about">About</a>
+      <a href="#services">What we offer</a>
+      <a href="#how">How it works</a>
+      <a href="#platform">Platform</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'dashboard' %}">{% icon 'layout-dashboard' %} Open dashboard</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">{% icon 'lock' %} Staff sign in</a>
+      {% endif %}
+      <a class="btn btn-primary" href="#contact">Partner with us</a>
+    </div>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">{% icon 'menu' %}</button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <a href="#about">About</a><a href="#services">What we offer</a><a href="#how">How it works</a><a href="#platform">Platform</a><a href="#contact">Contact</a>
+    {% if user.is_authenticated %}<a class="btn btn-ghost" href="{% url 'dashboard' %}">Open dashboard</a>{% else %}<a class="btn btn-ghost" href="{% url 'login' %}">Staff sign in</a>{% endif %}
+    <a class="btn btn-primary" href="#contact">Partner with us</a>
+  </div>
+</header>
+
+<main id="main">
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="hero-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="grid-fade"></span></div>
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <span class="pill rv">{% icon 'map-pin' %} Kidney-health screening · Nigeria</span>
+      <h1 class="rv" data-d="1">Making early kidney-damage risk screening <span class="grad">easier</span> and more <span class="grad">accessible</span>.</h1>
+      <p class="lead rv" data-d="2">RenalTrack brings urine albumin screening to community pharmacies and Community Health Workers — with a digital platform for patient registration, screening records and referral support.</p>
+      <div class="hero-actions rv" data-d="3">
+        <a class="btn btn-primary btn-lg" href="#contact">Partner with us {% icon 'arrow-right' %}</a>
+        <a class="btn btn-light btn-lg" href="#how">{% icon 'route' %} See how it works</a>
+      </div>
+      <ul class="hero-points rv" data-d="4">
+        <li>{% icon 'pill' %} Community pharmacies</li>
+        <li>{% icon 'hand-heart' %} Community Health Workers</li>
+        <li>{% icon 'file-heart' %} Digital screening records</li>
+      </ul>
+    </div>
+    <div class="hero-visual rv" data-d="2">
+      <div class="browser tilt">
+        <div class="browser-bar"><i></i><i></i><i></i><span>{% icon 'lock' %} renaltrack · dashboard</span></div>
+        <img src="{% static 'landing/portal-dashboard.webp' %}" alt="The RenalTrack dashboard showing screening activity, outcomes and recent screenings" width="1600" height="1000">
+      </div>
+      <div class="float-card fc1"><span class="fc-icon">{% icon 'circle-check' %}</span><div><strong>Screening recorded</strong><small>Patient LAF-000014 · just now</small></div></div>
+      <div class="float-card fc2"><span class="fc-icon amber">{% icon 'stethoscope' %}</span><div><strong>Reviewed by a professional</strong><small>Next step shared with the facility</small></div></div>
+      <div class="float-card fc3"><span class="fc-icon blue">{% icon 'route' %}</span><div><strong>Referral support</strong><small>For further clinical assessment</small></div></div>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#about" aria-label="Scroll to About">{% icon 'arrow-down' %}</a>
+</section>
+
+<!-- ============ About / Who we are ============ -->
+<section class="section" id="about">
+  <div class="wrap about-grid">
+    <div class="about-visual rv">
+      <div class="orbit-card">
+        <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+        <img src="{% static 'brand/logo-full.png' %}" alt="RenalTrack logo — Early detection. Healthier tomorrows." width="360" height="360" loading="lazy">
+      </div>
+    </div>
+    <div class="about-copy">
+      <span class="eyebrow rv">About us</span>
+      <h2 class="rv" data-d="1">A digital health solution for earlier kidney-damage risk screening.</h2>
+      <p class="rv" data-d="2">RenalTrack is a digital health solution focused on improving access to early kidney-damage risk screening in Nigeria. We make community-based screening more accessible through pharmacies and Community Health Workers (CHWs), helping people identify possible signs of kidney damage and seek appropriate medical assessment.</p>
+      <div class="who-card rv" data-d="3">
+        <span class="who-icon">{% icon 'badge-check' %}</span>
+        <div>
+          <h3>Who we are</h3>
+          <p>RenalTrack Limited provides a digital approach to community-based kidney-health screening, combining urine albumin testing with a platform that supports patient registration, health-risk documentation and screening-result recording.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ What we offer ============ -->
+<section class="section tint" id="services">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow rv">What we offer</span>
+      <h2 class="rv" data-d="1">Everything a community screening programme needs.</h2>
+      <p class="rv" data-d="2">From the test itself to the record it leaves behind and the follow-up that comes after.</p>
+    </div>
+    <div class="cards4">
+      <article class="card rv" data-d="1">
+        <span class="card-icon">{% icon 'flask-conical' %}</span>
+        <h3>Community-based kidney screening</h3>
+        <p>Urine albumin screening conducted by pharmacists and trained Community Health Workers to help identify possible signs of kidney damage.</p>
+      </article>
+      <article class="card rv" data-d="2">
+        <span class="card-icon">{% icon 'notebook-pen' %}</span>
+        <h3>Digital screening records</h3>
+        <p>A digital platform that supports authorised screening workers in registering patients, documenting relevant health information and recording screening results.</p>
+      </article>
+      <article class="card rv" data-d="3">
+        <span class="card-icon">{% icon 'clipboard-check' %}</span>
+        <h3>Screening information management</h3>
+        <p>A structured digital workflow for recording and handling screening information to support appropriate follow-up.</p>
+      </article>
+      <article class="card rv" data-d="4">
+        <span class="card-icon">{% icon 'route' %}</span>
+        <h3>Referral support</h3>
+        <p>Support for appropriate referral when screening results indicate that further medical assessment may be necessary.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Who we serve ============ -->
+<section class="section" id="serve">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow rv">Who we serve</span>
+      <h2 class="rv" data-d="1">Built for the people closest to the community.</h2>
+      <p class="rv" data-d="2">RenalTrack serves the general population through community pharmacies and Community Health Workers — including people with and without known risk factors for kidney disease.</p>
+    </div>
+    <div class="serve-grid">
+      <div class="serve-card dark rv" data-d="1">
+        <span class="serve-tag">{% icon 'hand-heart' %} Screening workers</span>
+        <h3>Pharmacists &amp; Community Health Workers</h3>
+        <p>Our service is designed for pharmacists and Community Health Workers to conduct screening and use the digital platform.</p>
+        <ul class="ticks"><li>{% icon 'check' %} Register patients and record health information</li><li>{% icon 'check' %} Conduct the urine albumin test</li><li>{% icon 'check' %} Record results and support follow-up</li></ul>
+      </div>
+      <div class="serve-card rv" data-d="2">
+        <span class="serve-tag light">{% icon 'users' %} Patients</span>
+        <h3>The communities they serve</h3>
+        <p>Patients receive the screening service; they do not perform the screening or interpret results themselves through the application.</p>
+        <ul class="ticks"><li>{% icon 'check' %} Screening close to home</li><li>{% icon 'check' %} Results explained by a trained worker</li><li>{% icon 'check' %} Guidance on appropriate next steps</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ How it works ============ -->
+<section class="section tint" id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow rv">How RenalTrack works</span>
+      <h2 class="rv" data-d="1">Four clear steps, from registration to follow-up.</h2>
+    </div>
+    <ol class="steps" data-steps>
+      <li class="step rv" data-d="1"><span class="step-n">01</span><span class="step-icon">{% icon 'user-plus' %}</span><h3>Patient registration</h3><p>The pharmacist or Community Health Worker registers the patient and records relevant health information.</p></li>
+      <li class="step rv" data-d="2"><span class="step-n">02</span><span class="step-icon">{% icon 'flask-conical' %}</span><h3>Urine albumin screening</h3><p>The test is conducted using the appropriate urine albumin test strip, following the manufacturer's instructions.</p></li>
+      <li class="step rv" data-d="3"><span class="step-n">03</span><span class="step-icon">{% icon 'notebook-pen' %}</span><h3>Digital record-keeping</h3><p>The screening worker records the patient's screening information and test result on the RenalTrack platform.</p></li>
+      <li class="step rv" data-d="4"><span class="step-n">04</span><span class="step-icon">{% icon 'route' %}</span><h3>Appropriate follow-up</h3><p>Screening information supports appropriate next steps and referral for further clinical assessment where necessary.</p></li>
+      <span class="steps-line" aria-hidden="true"><i></i></span>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ Platform showcase ============ -->
+<section class="section" id="platform">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow rv">The platform</span>
+      <h2 class="rv" data-d="1">A calm, focused workspace for every screening.</h2>
+      <p class="rv" data-d="2">Secure, facility-scoped access for authorised screening workers, reviewers and administrators.</p>
+    </div>
+    <div class="showcase rv" data-d="2">
+      <div class="tabs" role="tablist" aria-label="Platform screens">
+        <button role="tab" aria-selected="true" aria-controls="shot-0" id="tab-0" data-tab="0">{% icon 'layout-dashboard' %}<span><strong>Overview</strong><small>Activity, outcomes and what needs attention</small></span></button>
+        <button role="tab" aria-selected="false" aria-controls="shot-1" id="tab-1" data-tab="1" tabindex="-1">{% icon 'search' %}<span><strong>Find or register</strong><small>Search first, so every history stays together</small></span></button>
+        <button role="tab" aria-selected="false" aria-controls="shot-2" id="tab-2" data-tab="2" tabindex="-1">{% icon 'scan-line' %}<span><strong>Screening record</strong><small>Strip photo, details and professional review</small></span></button>
+      </div>
+      <div class="browser big">
+        <div class="browser-bar"><i></i><i></i><i></i><span>{% icon 'lock' %} renaltrack</span></div>
+        <div class="shots">
+          <img id="shot-0" role="tabpanel" aria-labelledby="tab-0" class="on" src="{% static 'landing/portal-dashboard.webp' %}" alt="RenalTrack dashboard" width="1600" height="1000" loading="lazy">
+          <img id="shot-1" role="tabpanel" aria-labelledby="tab-1" src="{% static 'landing/portal-find.webp' %}" alt="Finding a returning patient before a new screening" width="1600" height="1000" loading="lazy">
+          <img id="shot-2" role="tabpanel" aria-labelledby="tab-2" src="{% static 'landing/portal-review.webp' %}" alt="A screening record with the strip photo and review panel" width="1600" height="1000" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Mission ============ -->
+<section class="mission" id="mission">
+  <div class="mission-bg" aria-hidden="true"><span class="blob b3"></span></div>
+  <div class="wrap mission-inner">
+    <span class="eyebrow light rv">Our mission</span>
+    <blockquote class="rv" data-d="1">{% icon 'quote' cls='q' %}To make early kidney-damage risk screening more accessible across Nigeria by equipping community-based healthcare providers with a practical digital screening solution.</blockquote>
+    <div class="mission-tags rv" data-d="2"><span>{% icon 'target' %} Earlier detection</span><span>{% icon 'house-plus' %} Closer to home</span><span>{% icon 'hospital' %} Connected to care</span></div>
+  </div>
+</section>
+
+<!-- ============ Medical information ============ -->
+<section class="section slim" id="medical">
+  <div class="wrap">
+    <div class="medical rv">
+      <span class="medical-icon">{% icon 'info' %}</span>
+      <div>
+        <h2>Medical information</h2>
+        <p>RenalTrack supports kidney-damage risk screening, not definitive diagnosis. Screening results may indicate possible kidney damage but cannot independently confirm or rule out chronic kidney disease. Further clinical assessment and confirmatory testing may be required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Contact ============ -->
+<section class="section tint" id="contact">
+  <div class="wrap contact-grid">
+    <div class="contact-copy">
+      <span class="eyebrow rv">Contact us</span>
+      <h2 class="rv" data-d="1">Let's bring screening to your community.</h2>
+      <p class="rv" data-d="2">Whether you run a pharmacy, coordinate Community Health Workers, or want to partner with us — we'd love to hear from you.</p>
+      <ul class="contact-list rv" data-d="3">
+        <li><a href="mailto:renaltrackng@gmail.com"><span class="ci">{% icon 'mail' %}</span><span><small>Email</small>renaltrackng@gmail.com</span></a></li>
+        <li><a href="https://wa.me/2348139606387" target="_blank" rel="noopener"><span class="ci wa">{% brand 'whatsapp' %}</span><span><small>WhatsApp / phone</small>+234 813 960 6387</span></a></li>
+      </ul>
+      <div class="socials rv" data-d="4" aria-label="RenalTrack on social media">
+        <a href="https://www.instagram.com/renaltrack_ng?dlrf=MWhqcW42OHNucG95cA==" target="_blank" rel="noopener" aria-label="Instagram" class="s-ig">{% brand 'instagram' %}</a>
+        <a href="https://www.facebook.com/share/1FADTKArpP/" target="_blank" rel="noopener" aria-label="Facebook" class="s-fb">{% brand 'facebook' %}</a>
+        <a href="https://vm.tiktok.com/ZS9UutM8Qc2g4-NDwVr/" target="_blank" rel="noopener" aria-label="TikTok" class="s-tt">{% brand 'tiktok' %}</a>
+        <a href="https://wa.me/2348139606387" target="_blank" rel="noopener" aria-label="WhatsApp" class="s-wa">{% brand 'whatsapp' %}</a>
+      </div>
+    </div>
+    <div class="form-card rv" data-d="2">
+      <div class="form-success" {% if not sent %}hidden{% endif %} role="status">
+        <span class="ok-icon">{% icon 'circle-check' %}</span>
+        <h3>Thank you — message received.</h3>
+        <p>Our team will get back to you shortly. For anything urgent, reach us on WhatsApp.</p>
+        <button type="button" class="btn btn-light" data-send-another>Send another message</button>
+      </div>
+      <form method="post" action="{% url 'contact_submit' %}" class="contact-form" novalidate {% if sent %}hidden{% endif %}>
+        {% csrf_token %}
+        <h3>Send us a message</h3>
+        <div class="form-error" role="alert" {% if not form.non_field_errors %}hidden{% endif %}>{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+        <div class="hp" aria-hidden="true"><label>Leave this empty {{ form.rt_hp_check }}</label></div>
+        <div class="row2">
+          <label class="f">{{ form.name.label }}<span>*</span>{{ form.name }}<em class="err" data-err="name">{{ form.name.errors|join:' ' }}</em></label>
+          <label class="f">{{ form.email.label }}<span>*</span>{{ form.email }}<em class="err" data-err="email">{{ form.email.errors|join:' ' }}</em></label>
+        </div>
+        <div class="row2">
+          <label class="f">{{ form.phone.label }}{{ form.phone }}<em class="err" data-err="phone">{{ form.phone.errors|join:' ' }}</em></label>
+          <label class="f">{{ form.kind.label }}{{ form.kind }}<em class="err" data-err="kind">{{ form.kind.errors|join:' ' }}</em></label>
+        </div>
+        <label class="f">{{ form.message.label }}<span>*</span>{{ form.message }}<em class="err" data-err="message">{{ form.message.errors|join:' ' }}</em></label>
+        <button class="btn btn-primary btn-lg btn-block" type="submit"><span class="label">Send message</span>{% icon 'send' %}</button>
+        <p class="fine">{% icon 'lock' %} We only use your details to respond to your enquiry.</p>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ============ Footer ============ -->
+<footer class="footer">
+  <div class="wrap footer-top">
+    <div class="footer-brand">
+      <a class="logo inverse" href="#top"><img src="{% static 'brand/mark-128.png' %}" alt="" width="38" height="38"><span>Renal<b>Track</b></span></a>
+      <p>Early detection. Healthier tomorrows. Community-based kidney-damage risk screening for Nigeria.</p>
+      <div class="socials dark">
+        <a href="https://www.instagram.com/renaltrack_ng?dlrf=MWhqcW42OHNucG95cA==" target="_blank" rel="noopener" aria-label="Instagram">{% brand 'instagram' %}</a>
+        <a href="https://www.facebook.com/share/1FADTKArpP/" target="_blank" rel="noopener" aria-label="Facebook">{% brand 'facebook' %}</a>
+        <a href="https://vm.tiktok.com/ZS9UutM8Qc2g4-NDwVr/" target="_blank" rel="noopener" aria-label="TikTok">{% brand 'tiktok' %}</a>
+        <a href="https://wa.me/2348139606387" target="_blank" rel="noopener" aria-label="WhatsApp">{% brand 'whatsapp' %}</a>
+      </div>
+    </div>
+    <div class="footer-cols">
+      <div><h4>Company</h4><a href="#about">About us</a><a href="#mission">Our mission</a><a href="#serve">Who we serve</a></div>
+      <div><h4>Service</h4><a href="#services">What we offer</a><a href="#how">How it works</a><a href="#platform">Platform</a></div>
+      <div><h4>Get in touch</h4><a href="mailto:renaltrackng@gmail.com">renaltrackng@gmail.com</a><a href="https://wa.me/2348139606387" target="_blank" rel="noopener">+234 813 960 6387</a><a href="{% url 'login' %}">Staff sign in</a></div>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span class="fb-left"><span>© {% now 'Y' %} RenalTrack Limited. All rights reserved.</span><i class="fb-sep" aria-hidden="true"></i><span>RenalTrack supports screening, not diagnosis.</span></span>
+    <span class="credit" aria-label="Powered by Vanara Multi-Ventures">Powered <em>by</em> <a class="credit-link" href="https://www.linkedin.com/in/vaisah-peter-zirra-0ba6842b7/" target="_blank" rel="noopener">Vanara Multi-Ventures</a></span>
+  </div>
+</footer>
+
+<script src="{% static 'landing.js' %}"></script>
+</body>
+</html>

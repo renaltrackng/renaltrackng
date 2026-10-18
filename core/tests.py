@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from .models import User, Facility, Protocol, Patient, Screening, Consent, Attempt, Review, Notification, Audit
+from .models import User, Facility, Protocol, Patient, Screening, Consent, Attempt, Review, Notification, Audit, ContactMessage
 from .forms import UploadForm, ReviewForm
 from .services import start_screening, submit_attempt, claim_review, save_review
 
@@ -296,3 +296,53 @@ class ReviewerQueueAndNotificationTests(TestCase):
         self.client.force_login(self.reviewer)
         order = [s.pk for s in self.client.get(reverse('screenings')).context['page']]
         self.assertEqual(order, [first.pk, last.pk, done.pk])
+
+
+class WebsiteAndEnquiryTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='a', email='a@example.com', password='Unique-demo-secret-42', role='admin')
+        self.staff_facility = Facility.objects.create(name='North', code='NTH')
+        self.staff = User.objects.create_user(username='s', email='s@example.com', password='Unique-demo-secret-42', role='staff', facility=self.staff_facility)
+        self.valid = {'name': 'Halima Yusuf', 'email': 'h@example.com', 'phone': '', 'kind': 'pharmacy', 'message': 'We would like to offer screening at our pharmacy.'}
+
+    def test_landing_is_public_and_dashboard_moved(self):
+        response = self.client.get(reverse('landing'))
+        self.assertContains(response, 'Making early kidney-damage risk screening')
+        self.assertContains(response, 'renaltrackng@gmail.com')
+        self.assertContains(response, 'Select one')
+        self.assertRedirects(self.client.get(reverse('dashboard')), reverse('login') + '?next=' + reverse('dashboard'))
+
+    def test_contact_form_saves_message(self):
+        response = self.client.post(reverse('contact_submit'), self.valid, HTTP_X_REQUESTED_WITH='fetch')
+        self.assertEqual(response.json(), {'ok': True})
+        self.assertEqual(ContactMessage.objects.get().name, 'Halima Yusuf')
+
+    def test_contact_form_validation_and_honeypot(self):
+        response = self.client.post(reverse('contact_submit'), {**self.valid, 'email': 'nope'}, HTTP_X_REQUESTED_WITH='fetch')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.json()['errors'])
+        self.client.post(reverse('contact_submit'), {**self.valid, 'rt_hp_check': 'spam.example'}, HTTP_X_REQUESTED_WITH='fetch')
+        msg = ContactMessage.objects.get()
+        self.assertTrue(msg.is_spam)
+        self.client.force_login(self.admin)
+        self.assertNotContains(self.client.get(reverse('contact_messages')), 'Halima Yusuf')
+        self.assertContains(self.client.get(reverse('contact_messages'), {'show': 'filtered'}), 'Halima Yusuf')
+        self.client.post(reverse('contact_message_action', args=[msg.pk]), {'action': 'notspam'})
+        msg.refresh_from_db(); self.assertFalse(msg.is_spam)
+
+    def test_contact_form_rate_limited(self):
+        for _ in range(5): self.client.post(reverse('contact_submit'), self.valid, HTTP_X_REQUESTED_WITH='fetch')
+        response = self.client.post(reverse('contact_submit'), self.valid, HTTP_X_REQUESTED_WITH='fetch')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(ContactMessage.objects.count(), 5)
+
+    def test_only_admins_see_inbox_and_opening_marks_read(self):
+        msg = ContactMessage.objects.create(**{k: v for k, v in self.valid.items()})
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse('contact_messages')).status_code, 403)
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get(reverse('dashboard')), '1 new enquiry')
+        self.assertContains(self.client.get(reverse('contact_messages'), {'open': msg.pk}), 'Halima Yusuf')
+        msg.refresh_from_db(); self.assertTrue(msg.read)
+        self.client.post(reverse('contact_message_action', args=[msg.pk]), {'action': 'delete'})
+        self.assertFalse(ContactMessage.objects.exists())

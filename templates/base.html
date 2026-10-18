@@ -42,6 +42,7 @@
     <a class="nav-item {% if section == 'users' %}active{% endif %}" href="{% url 'users' %}">{% icon 'user-cog' %} Team &amp; access {% icon 'chevron-right' cls='chev' %}</a>
     <a class="nav-item {% if section == 'protocols' %}active{% endif %}" href="{% url 'protocols' %}">{% icon 'file-text' %} Protocols {% icon 'chevron-right' cls='chev' %}</a>
     <a class="nav-item {% if section == 'audit' %}active{% endif %}" href="{% url 'audit' %}">{% icon 'history' %} Activity log {% icon 'chevron-right' cls='chev' %}</a>
+    <a class="nav-item {% if section == 'messages' %}active{% endif %}" href="{% url 'contact_messages' %}">{% icon 'inbox' %} Website enquiries {% if unread_messages %}<b class="count">{{ unread_messages }}</b>{% endif %}{% icon 'chevron-right' cls='chev' %}</a>
     {% endif %}
     <div class="nav-label">Account</div>
     <a class="nav-item {% if section == 'settings' %}active{% endif %}" href="{% url 'profile' %}">{% icon 'settings' %} Settings {% icon 'chevron-right' cls='chev' %}</a>
@@ -69,7 +70,7 @@
     <button class="icon-button mobile-menu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">{% icon 'menu' %}</button>
     <div class="crumbs">
       <span>RenalTrack</span>{% icon 'chevron-right' %}
-      <strong>{% if section == 'users' %}Team &amp; access{% elif section == 'audit' %}Activity log{% elif section == 'screenings' and user.role == 'reviewer' %}Review queue{% else %}{{ section|default:'dashboard'|title }}{% endif %}</strong>
+      <strong>{% if section == 'users' %}Team &amp; access{% elif section == 'audit' %}Activity log{% elif section == 'messages' %}Website enquiries{% elif section == 'screenings' and user.role == 'reviewer' %}Review queue{% else %}{{ section|default:'dashboard'|title }}{% endif %}</strong>
     </div>
     <form class="top-search" action="{% url 'screenings' %}" method="get" role="search">
       {% icon 'search' %}

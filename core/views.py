@@ -19,8 +19,8 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.http import require_POST
-from .models import User, Facility, Patient, Protocol, Screening, Attempt, Notification, Audit, LoginThrottle
-from .forms import LoginForm, StartForm, RiskForm, UploadForm, ReviewForm, FacilityForm, UserForm, ProfileForm
+from .models import User, Facility, Patient, Protocol, Screening, Attempt, Notification, Audit, LoginThrottle, ContactMessage
+from .forms import LoginForm, StartForm, RiskForm, UploadForm, ReviewForm, FacilityForm, UserForm, ProfileForm, ContactForm
 from .access import screenings_for, patients_for, facilities_for
 from . import dashboard as dashboard_ui
 from .services import start_screening, submit_attempt, claim_review, save_review, reviewer_allowed, audit
@@ -339,3 +339,77 @@ def audit_log(request):
 @role_required('admin')
 def protocols(request):
     return render(request, 'management/protocols.html', {'section': 'protocols', 'protocols': Protocol.objects.order_by('-created_at')})
+
+
+# ---------- Public website ----------
+
+def landing(request):
+    return render(request, 'landing.html', {'form': ContactForm(), 'sent': request.GET.get('sent') == '1'})
+
+
+@require_POST
+def contact_submit(request):
+    from django.http import JsonResponse
+    wants_json = request.headers.get('x-requested-with') == 'fetch'
+    form = ContactForm(request.POST)
+    ip_hash = hashlib.sha256(('contact:' + request.META.get('REMOTE_ADDR', '')).encode()).hexdigest()
+    recent = ContactMessage.objects.filter(ip_hash=ip_hash, created_at__gte=timezone.now() - timedelta(hours=1)).count()
+    if recent >= 5:
+        form.add_error(None, 'You have sent several messages recently. Please try again later or email us directly.')
+    if form.is_valid():
+        msg = form.save(commit=False)
+        msg.ip_hash = ip_hash
+        # Never drop a message silently: if the hidden trap field was filled, keep it in the Filtered tab.
+        msg.is_spam = bool(form.cleaned_data.get('rt_hp_check'))
+        msg.read = msg.is_spam
+        msg.save()
+        if wants_json:
+            return JsonResponse({'ok': True})
+        return redirect(reverse('landing') + '?sent=1#contact')
+    if wants_json:
+        return JsonResponse({'ok': False, 'errors': {k: [str(e) for e in v] for k, v in form.errors.items()}}, status=400)
+    return render(request, 'landing.html', {'form': form}, status=400)
+
+
+# ---------- Admin: enquiries inbox ----------
+
+@role_required('admin')
+def contact_messages(request):
+    inbox = ContactMessage.objects.filter(is_spam=False)
+    show = request.GET.get('show', 'all')
+    if show == 'unread': qs = inbox.filter(read=False)
+    elif show == 'filtered': qs = ContactMessage.objects.filter(is_spam=True)
+    else: qs = inbox
+    selected = None
+    if request.GET.get('open'):
+        selected = get_object_or_404(ContactMessage, pk=request.GET['open'])
+        if not selected.read:
+            selected.read = True
+            selected.save(update_fields=['read'])
+    return render(request, 'management/messages.html', {
+        'section': 'messages', 'page': Paginator(qs, 20).get_page(request.GET.get('page')), 'show': show,
+        'selected': selected, 'total': inbox.count(),
+        'unread_total': inbox.filter(read=False).count(),
+        'filtered_total': ContactMessage.objects.filter(is_spam=True).count(),
+    })
+
+
+@require_POST
+@role_required('admin')
+def contact_message_action(request, pk):
+    msg = get_object_or_404(ContactMessage, pk=pk)
+    action = request.POST.get('action')
+    if action == 'delete':
+        msg.delete()
+        audit(request.user, 'Enquiry deleted', pk)
+        messages.success(request, 'Message deleted.')
+        return redirect('contact_messages')
+    if action == 'notspam':
+        msg.is_spam = False
+        msg.save(update_fields=['is_spam'])
+        messages.success(request, 'Moved to your inbox.')
+        return redirect(reverse('contact_messages') + f'?open={msg.pk}')
+    msg.read = action != 'unread'
+    msg.save(update_fields=['read'])
+    messages.success(request, 'Marked as unread.' if action == 'unread' else 'Marked as read.')
+    return redirect(reverse('contact_messages') + ('' if action == 'unread' else f'?open={msg.pk}'))
